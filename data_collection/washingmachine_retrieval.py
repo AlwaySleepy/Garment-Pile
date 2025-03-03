@@ -56,7 +56,7 @@ from Utils_Project.Collision_group import Collision_Group
 from Utils_Project.AttachmentBlock import AttachmentBlock
 from Camera.Point_Cloud_Camera import Point_Cloud_Camera
 from Camera.Recording_Camera import Recording_Camera
-from Model.pointnet2_seg_ssg import get_model
+from Model.pointnet2_Retrieve_Model import Retrieve_Model
 from Model.pointnet2_Place_Model import Place_Model
 from Model.pointnet2_Pick_Model import Pick_Model
 import Utils_Project.utils as util

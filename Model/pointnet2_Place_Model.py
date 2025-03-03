@@ -150,18 +150,6 @@ class Place_Model(nn.Module):
         return output
 
 
-# model = Place_Model(normal_channel=False)
-
-# B, C, N = 8, 3, 4096
-# xyz_pick = torch.rand(B, C, N)
-# xyz_place = torch.rand(B, C, N)
-
-# output = model(xyz_pick, xyz_place)
-
-# # 打印结果形状
-# print(f"mixed_feature shape: {output.shape}")
-
-
 class Place_Model_Loss(nn.Module):
 
     def __init__(self):

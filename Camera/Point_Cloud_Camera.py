@@ -6,7 +6,7 @@ pointcloud graph will be used to get which point to catch
 
 import numpy as np
 import torch
-from Model.pointnet2_seg_ssg import get_model
+from Model.pointnet2_Retrieve_Model import Retrieve_Model
 from omni.isaac.sensor import Camera
 from omni.isaac.core.utils.rotations import euler_angles_to_quat
 from Utils_Project.utils import get_unique_filename, record_success_failure, write_ply
@@ -85,7 +85,7 @@ class Point_Cloud_Camera:
         self.annotator_rgb.attach(self.render_product)
 
         # load model
-        self.model = get_model(normal_channel=False).cuda()
+        self.model = Retrieve_Model(normal_channel=False).cuda()
         self.model.load_state_dict(torch.load("Model/finetune_model_5.pth"))
         self.model.eval()
 

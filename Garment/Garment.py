@@ -79,7 +79,7 @@ class WrapGarment:
 """
 Class Garment
 used to grnerate one piece of garment
-It will be encapsulated into Class WrapGarment to generate many garment(gatment_nums can be changed)
+It will be encapsulated into Class WrapGarment to generate many garments(gatment_nums can be changed)
 you can also use Class Garment seperately
 """
 

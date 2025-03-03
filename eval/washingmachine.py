@@ -35,8 +35,6 @@ from omni.kit.viewport.utility import get_active_viewport
 from omni.isaac.core.utils.prims import delete_prim, set_prim_visibility
 from omni.isaac.core.utils.viewports import set_camera_view
 
-# print(sys.path)
-
 from Robot.WrapFranka import WrapFranka
 from Wash_Machine.Wash_Machine import Wrap_Wash_Machine
 from Garment.Garment import WrapGarment, Garment
@@ -56,7 +54,7 @@ from Utils_Project.Collision_group import Collision_Group
 from Utils_Project.AttachmentBlock import AttachmentBlock
 from Camera.Point_Cloud_Camera import Point_Cloud_Camera
 from Camera.Recording_Camera import Recording_Camera
-from Model.pointnet2_seg_ssg import get_model
+from Model.pointnet2_Retrieve_Model import Retrieve_Model
 from Model.pointnet2_Place_Model import Place_Model
 from Model.pointnet2_Pick_Model import Pick_Model
 import Utils_Project.utils as util
@@ -191,18 +189,22 @@ class WashingMachineEnv:
         print("collision add successfully")
 
         # load retrieval model
-        self.garment_model = get_model(normal_channel=False).cuda()
-        self.garment_model.load_state_dict(torch.load("Model/finetune_model_5.pth"))
+        self.garment_model = Retrieve_Model(normal_channel=False).cuda()
+        self.garment_model.load_state_dict(
+            torch.load("Model/wm_retrieve_model_finetuned.pth")
+        )
         self.garment_model.eval()
 
         # load place model
         self.place_model = Place_Model(normal_channel=False).cuda()
-        self.place_model.load_state_dict(torch.load("Model/finetune_model_2.pth"))
+        self.place_model.load_state_dict(
+            torch.load("Model/wm_place_model_finetuned.pth")
+        )
         self.place_model.eval()
 
         # load pick model
         self.pick_model = Pick_Model(normal_channel=False).cuda()
-        self.pick_model.load_state_dict(torch.load("Model/finetune_model_0.pth"))
+        self.pick_model.load_state_dict(torch.load("Model/wm_pick_model_finetuned.pth"))
         self.pick_model.eval()
 
     def garment_into_machine(self):
@@ -213,7 +215,7 @@ class WashingMachineEnv:
         # change gravity direction
         self.scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(1.5, 0.0, -1.2))
         self.scene.CreateGravityMagnitudeAttr().Set(8.0)
-        for i in range(650):  # 2500
+        for i in range(650):
             if not simulation_app.is_running():
                 simulation_app.close()
             simulation_app.update()
@@ -224,7 +226,7 @@ class WashingMachineEnv:
                 self.scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(1.5, 0.0, 0.05))
                 self.scene.CreateGravityMagnitudeAttr().Set(9.8)
             # print(i)
-            if i == 550:  # 2200
+            if i == 550:
                 print("ready to change")
                 # return to the normal gravity direction
                 self.scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(0.0, 0.0, -1))

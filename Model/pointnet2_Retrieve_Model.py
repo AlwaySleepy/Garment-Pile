@@ -9,10 +9,10 @@ from Model.pointnet2_utils import (
 )
 
 
-class get_model(nn.Module):
+class Retrieve_Model(nn.Module):
 
     def __init__(self, normal_channel=False):
-        super(get_model, self).__init__()
+        super(Retrieve_Model, self).__init__()
         if normal_channel:
             additional_channel = 3
         else:
@@ -83,11 +83,11 @@ class get_model(nn.Module):
         return output
 
 
-class get_loss(nn.Module):
+class Retrieve_Model_Loss(nn.Module):
 
     def __init__(self):
 
-        super(get_loss, self).__init__()
+        super(Retrieve_Model_Loss, self).__init__()
 
     def forward(self, pred, target):
         """
