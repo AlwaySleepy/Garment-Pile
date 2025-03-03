@@ -1,5 +1,5 @@
 # Point-Level Visual Affordance Guided Retrieval and Adaptation for Cluttered Garments Manipulation
-[[Project page]](https://garmentpile.github.io/) 
+[[Project page]](https://garmentpile.github.io/)
 <!-- | [[Paper]](https://arxiv.org/pdf/2501.00879) | [[Video]](https://www.youtube.com/watch?v=IiOBj3ww-qA) -->
 
 [Ruihai Wu*](https://warshallrho.github.io/), [Ziyu Zhu*](https://alwaysleepy.github.io/), Yuran Wang*, [Yue Chen](https://github.com/Cold114514), Jiarui Wang, [Hao Dong](https://zsdonghao.github.io/)
@@ -8,7 +8,7 @@ Peking University
 
 *CVPR 2025*
 
-<img src="Image/Teaser.jpg" alt="teaser" width="80%"/>
+<img src="Repo_Image/Teaser.jpg" alt="teaser" width="80%"/>
 
 ## Structure of the Repository
 ```
@@ -26,23 +26,38 @@ Peking University
 /Wash_Machine            # Implementation for washing machine
 ```
 
+## Developer Guidance
 
+For developers, please install pre-commit hooks:
+
+```shell
+pip install pre-commit
+pre-commit install
+```
+
+And do install the [Black Formatter](https://marketplace.visualstudio.com/items?itemName=ms-python.black-formatter) vscode extension.
+
+The .vscode/settings.json is configured aligning with the pre-commit hooks. Whenever you save the file, it will be formatted automatically.
 
 ## Installation
 
-To reproduce our simulation results, install our conda environment on a Linux machine with Nvidia GPU. 
+To reproduce our simulation results, install our conda environment on a Linux machine with Nvidia GPU.
 
-1. Install Isaac Sim <br>
-   Download Isaac Sim 2023.1.1. You can refer to the [official guideline](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html) and [Isaac Sim Forum](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html) to download it. 
+1. Install Isaac Sim
 
-3. Clone this repo
+   Download Isaac Sim 2023.1.1. You can refer to the [official guideline](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html) and [Isaac Sim Forum](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html) to download it.
+
+2. Clone this repo
+
     ```
     git clone https://github.com/AlwaySleepy/Garment-Pile.git
     ```
 
-4. Download ClothesNet <br>
+3. Download ClothesNet
+
     You can refer to [Clothsenet](https://sites.google.com/view/clothesnet) to download this garment assets and put it in your preferred local path. Then you should change the path in /config.py accordingly.
-5. Install environment for PointNet++: (to do)
+
+4. Install environment for PointNet++: (to do)
 
 ## Data Collection
 Run the following command to generate retrieval data:
