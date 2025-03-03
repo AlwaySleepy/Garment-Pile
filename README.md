@@ -10,21 +10,12 @@ Peking University
 
 <img src="Repo_Image/Teaser.jpg" alt="teaser" width="80%"/>
 
-## Structure of the Repository
-```
-# training and evaluation
-/data_collection         # The data collection pipeline
-/train                   # The code for training affordance
-/eval                    # The code for evaluation in different scenarios
-/Model                   # The code for model implementation and checkpoints
+## MileStone
 
-# garment pile simulation (Isaac Sim)
-/Camera                  # Implementation for camera
-/Garment                 # Implementation for garments
-/Robot                   # Implementation for robot
-/Room                    # Implementation for room
-/Wash_Machine            # Implementation for washing machine
-```
+- [ ] Scene (Wash_Machine, Sofa, Basket) Release
+- [ ] Data Collection Code Release
+- [ ] Train Code Release
+- [ ] Finetune Code Release
 
 ## Developer Guidance
 
