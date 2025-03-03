@@ -1,5 +1,5 @@
 {
-    "editor.rulers": [120],
+    "editor.rulers": [240],
     "typescript.tsc.autoDetect": "off",
     "grunt.autoDetect": "off",
     "jake.autoDetect": "off",

@@ -53,9 +53,9 @@ To reproduce our simulation results, install our conda environment on a Linux ma
     git clone https://github.com/AlwaySleepy/Garment-Pile.git
     ```
 
-3. Download ClothesNet
+3. Download 'Garment' Assets
 
-    You can refer to [Clothsenet](https://sites.google.com/view/clothesnet) to download this garment assets and put it in your preferred local path. Then you should change the path in /config.py accordingly.
+    Please refer to [Google_Drive_link](https://drive.google.com/drive/folders/1EWH9zYQfBa96Z4JyimvUSBYOyW615JSg) to download **Garment** folder and unzip it to 'Assets/'.
 
 4. Install environment for PointNet++: (to do)
 
@@ -83,7 +83,7 @@ Data will be stored in /data/retrieval or /data/stir in .npz form.
 ## Evaluation
 Run the following command to evaluate provided model.
 ```
-/home/user/.local/share/ov/pkg/isaac-sim-2023.1.1/python.sh eval/washingmachine.py
+/home/user/.local/share/ov/pkg/isaac-sim-2023.1.1/python.sh eval/washmachine.py
 ```
 Change the path of Isaac Sim to your own local path.
 
