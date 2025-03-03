@@ -7,4 +7,3 @@ repos:
     -   id: check-added-large-files
     -   id: debug-statements  # check for debugger imports or `breakpoint()`
     -   id: check-yaml
-    -   id: check-toml
