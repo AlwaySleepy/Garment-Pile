@@ -1,4 +1,4 @@
-# Point-Level Visual Affordance Guided Retrieval and Adaptation for Cluttered Garments Manipulation
+# GarmentPile
 [[Project page]](https://garmentpile.github.io/)
 <!-- | [[Paper]](https://arxiv.org/pdf/2501.00879) | [[Video]](https://www.youtube.com/watch?v=IiOBj3ww-qA) -->
 
