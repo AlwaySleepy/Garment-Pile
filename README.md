@@ -12,7 +12,7 @@ Peking University
 
 ## MileStone
 
-- [ ] Scene (Wash_Machine, Sofa, Basket) Release
+- [x] Scene (Wash_Machine, Sofa, Basket) Release
 - [ ] Data Collection Code Release
 - [ ] Train Code Release
 - [ ] Finetune Code Release

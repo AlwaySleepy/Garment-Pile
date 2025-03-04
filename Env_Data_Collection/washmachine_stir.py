@@ -45,16 +45,16 @@ from Env_Config.Utils_Project.utils import (
     change_door_pos,
     compare_position_before_and_after,
     get_unique_filename,
-    judge_final_poses,
+    wm_judge_final_poses,
     load_conveyor_belt,
     load_washmachine_model,
     record_success_failure,
     write_ply,
     write_ply_with_colors,
 )
-from Env_Config.Utils_Project.Collision_group import Collision_Group
+from Env_Config.Utils_Project.WM_Collision_Group import Collision_Group
 from Env_Config.Utils_Project.AttachmentBlock import AttachmentBlock
-from Env_Config.Camera.Point_Cloud_Camera import Point_Cloud_Camera
+from Env_Config.Camera.WashMachine_Point_Cloud_Camera import Point_Cloud_Camera
 from Env_Config.Camera.Recording_Camera import Recording_Camera
 from Env_Config.Model.pointnet2_Retrieve_Model import Retrieve_Model
 from Env_Config.Model.pointnet2_Place_Model import Place_Model

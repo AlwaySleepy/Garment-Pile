@@ -36,29 +36,28 @@ from omni.isaac.core.utils.prims import delete_prim, set_prim_visibility
 from omni.isaac.core.utils.viewports import set_camera_view
 
 from Env_Config.Robot.WrapFranka import WrapFranka
-from Env_Config.Wash_Machine.Wash_Machine import Wrap_Wash_Machine
 from Env_Config.Garment.Garment import WrapGarment, Garment
 from Env_Config.Utils_Project.utils import (
     add_wm_door,
     change_door_pos,
     compare_position_before_and_after,
     get_unique_filename,
-    judge_final_poses,
+    wm_judge_final_poses,
     load_conveyor_belt,
     load_washmachine_model,
     record_success_failure,
     write_ply,
     write_ply_with_colors,
 )
-from Env_Config.Utils_Project.Collision_group import Collision_Group
+from Env_Config.Utils_Project.WM_Collision_Group import Collision_Group
 from Env_Config.Utils_Project.AttachmentBlock import AttachmentBlock
-from Env_Config.Camera.Point_Cloud_Camera import Point_Cloud_Camera
+from Env_Config.Camera.WashMachine_Point_Cloud_Camera import Point_Cloud_Camera
 from Env_Config.Camera.Recording_Camera import Recording_Camera
 from Env_Config.Model.pointnet2_Retrieve_Model import Retrieve_Model
 from Env_Config.Model.pointnet2_Place_Model import Place_Model
 from Env_Config.Model.pointnet2_Pick_Model import Pick_Model
 import Env_Config.Utils_Project.utils as util
-from Env_Config.Room.Room import Wrap_base, Wrap_room, Wrap_basket
+from Env_Config.Room.Room import Wrap_base, Wrap_room, Wrap_basket, Wrap_wash_machine
 
 
 class washmachineEnv:
@@ -119,6 +118,7 @@ class washmachineEnv:
             self.config.point_cloud_camera_position,
             self.config.point_cloud_camera_orientation,
             garment_num=self.config.garment_num,
+            garment_model_pth_path="Env_Config/Model/wm_retrieve_model_finetuned.pth",
         )
 
         # load franka
@@ -132,7 +132,7 @@ class washmachineEnv:
         )
 
         # load wash_machine
-        self.wash_machine = Wrap_Wash_Machine(
+        self.wash_machine = Wrap_wash_machine(
             self.config.wm_position,
             self.config.wm_orientation,
             self.config.wm_scale,
@@ -141,31 +141,31 @@ class washmachineEnv:
         )
 
         # load room
-        # self.room = Wrap_room(
-        #     self.config.room_position,
-        #     self.config.room_orientation,
-        #     self.config.room_scale,
-        #     self.config.room_usd_path,
-        #     self.config.room_prim_path,
-        # )
+        self.room = Wrap_room(
+            self.config.room_position,
+            self.config.room_orientation,
+            self.config.room_scale,
+            self.config.room_usd_path,
+            self.config.room_prim_path,
+        )
 
         # load basket
-        # self.basket = Wrap_basket(
-        #     self.config.basket_position,
-        #     self.config.basket_orientation,
-        #     self.config.basket_scale,
-        #     self.config.basket_usd_path,
-        #     self.config.basket_prim_path,
-        # )
+        self.basket = Wrap_basket(
+            self.config.basket_position,
+            self.config.basket_orientation,
+            self.config.basket_scale,
+            self.config.basket_usd_path,
+            self.config.basket_prim_path,
+        )
 
         # load base
-        # self.base = Wrap_base(
-        #     self.config.base_position,
-        #     self.config.base_orientation,
-        #     self.config.base_scale,
-        #     self.config.base_usd_path,
-        #     self.config.base_prim_path,
-        # )
+        self.base = Wrap_base(
+            self.config.base_position,
+            self.config.base_orientation,
+            self.config.base_scale,
+            self.config.base_usd_path,
+            self.config.base_prim_path,
+        )
 
         # load garment
         self.garments = WrapGarment(
@@ -408,10 +408,12 @@ class washmachineEnv:
             for i in range(100):
                 self.world.step(render=True)
 
-            garment_cur_poses = self.garments.get_cur_poses(self.garment_index)
+            garment_cur_poses = self.garments.washmachine_get_cur_poses(
+                self.garment_index
+            )
 
             # will record the success or failure in Env_Eval/washmachine_record.txt
-            self.garment_index, success = judge_final_poses(
+            self.garment_index, success = wm_judge_final_poses(
                 garment_cur_poses, garment_cur_index, self.garment_index
             )
             print("success flag", success)
@@ -511,11 +513,12 @@ class washmachineEnv:
 if __name__ == "__main__":
 
     env = washmachineEnv()
+
     set_prim_visibility(env.franka._robot.prim, False)
 
     env.world.reset()
 
-    env.point_cloud_camera.initialize(env.config.garment_num)
+    env.point_cloud_camera.initialize()
 
     env.recording_camera.initialize()
 

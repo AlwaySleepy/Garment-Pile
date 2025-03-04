@@ -29,8 +29,12 @@ class AttachmentBlock:
         for i in range(self.garment_num):
             self.attachment_path_list.append(garment_path[i] + f"/mesh/attachment")
 
-    def create_block(self, block_name, block_position, block_visible):
+    def create_block(self, block_name, block_position, block_visible, scale=None):
         self.block_path = self.root_prim_path + "/" + block_name
+        if scale is None:
+            scale = np.array([0.01, 0.01, 0.01])
+        else:
+            scale = np.array(scale)
         self.block = DynamicCuboid(
             prim_path=self.block_path,
             color=np.array([1.0, 0.0, 0.0]),

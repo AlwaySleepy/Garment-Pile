@@ -44,7 +44,7 @@ class Wrap_basket:
         orientation=[0.0, 0.0, 0.0],
         scale=[1, 1, 1],
         usd_path=str,
-        prim_path: str = "/World/room",
+        prim_path: str = "/World/basket",
     ):
         self._basket_position = position
         self._basket_orientation = orientation
@@ -73,7 +73,7 @@ class Wrap_base:
         orientation=[0.0, 0.0, 0.0],
         scale=[1, 1, 1],
         usd_path=str,
-        prim_path: str = "/World/room",
+        prim_path: str = "/World/base",
     ):
         self._base_position = position
         self._base_orientation = orientation
@@ -92,4 +92,62 @@ class Wrap_base:
             scale=self._base_scale,
             position=self._base_position,
             orientation=euler_angles_to_quat(self._base_orientation, degrees=True),
+        )
+
+
+class Wrap_chair:
+    def __init__(
+        self,
+        position=torch.tensor,
+        orientation=[0.0, 0.0, 0.0],
+        scale=[0.08, 0.08, 0.08],
+        usd_path=str,
+        prim_path: str = "/World/chair",
+    ):
+        self._chair_position = position
+        self._chair_orientation = orientation
+        self._chair_scale = scale
+        self._chair_prim_path = find_unique_string_name(
+            prim_path, is_unique_fn=lambda x: not is_prim_path_valid(x)
+        )
+        self._chair_usd_path = usd_path
+
+        # add wash_machine to stage
+        add_reference_to_stage(self._chair_usd_path, self._chair_prim_path)
+
+        self._chair_prim = XFormPrim(
+            self._chair_prim_path,
+            name="chair",
+            scale=self._chair_scale,
+            position=self._chair_position,
+            orientation=euler_angles_to_quat(self._chair_orientation, degrees=True),
+        )
+
+
+class Wrap_wash_machine:
+    def __init__(
+        self,
+        position=torch.tensor,
+        orientation=[0.0, 0.0, 0.0],
+        scale=[1, 1, 1],
+        usd_path=str,
+        prim_path: str = "/World/Wash_Machine",
+    ):
+        self._wm_position = position
+        self._wm_orientation = orientation
+        self._wm_scale = scale
+        self._wm_prim_path = find_unique_string_name(
+            prim_path, is_unique_fn=lambda x: not is_prim_path_valid(x)
+        )
+        self._wm_usd_path = usd_path
+
+        # add wash_machine to stage
+        add_reference_to_stage(self._wm_usd_path, self._wm_prim_path)
+
+        self._wm_prim = XFormPrim(
+            self._wm_prim_path,
+            name="Wash_Machine",
+            scale=self._wm_scale,
+            position=self._wm_position,
+            orientation=euler_angles_to_quat(self._wm_orientation, degrees=True),
         )

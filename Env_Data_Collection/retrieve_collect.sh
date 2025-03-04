@@ -1,7 +1,7 @@
 for i in {0..1000}
 do
 
-    /home/user/.local/share/ov/pkg/isaac-sim-2023.1.1/python.sh data_collection/washmachine_retrieval.py
+    ~/.local/share/ov/pkg/isaac-sim-2023.1.1/python.sh Env_Data_Collection/washmachine_retrieval.py
 
     sleep 5
 

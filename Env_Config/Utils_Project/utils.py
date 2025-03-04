@@ -7,6 +7,8 @@ from omni.isaac.core.objects import DynamicCuboid, FixedCuboid
 from omni.isaac.core.utils.rotations import euler_angles_to_quat
 from pxr import UsdGeom, UsdLux, Sdf, Gf, Vt, Usd, UsdPhysics, PhysxSchema
 from omni.isaac.core.utils.prims import delete_prim, set_prim_visibility
+from termcolor import cprint
+from plyfile import PlyData, PlyElement
 
 
 def load_conveyor_belt(world, i=0, j=0):
@@ -211,6 +213,11 @@ def get_unique_filename(base_filename, extension=".png"):
 flag_record = True
 
 
+def flush_record_flag():
+    global flag_record
+    flag_record = True
+
+
 def record_success_failure(flag: bool, file_path, str=""):
     global flag_record
     if flag_record:
@@ -226,11 +233,6 @@ def record_success_failure(flag: bool, file_path, str=""):
     #     if not flag:
     #         with open(file_path, 'a') as file:
     #             file.write("0 "+str+'\n')
-
-
-# Pointcloud IO
-# import plyfile
-from plyfile import PlyData, PlyElement
 
 
 def read_ply(filename):
@@ -321,7 +323,7 @@ def judge_once_per_time(cur_poses, index):
     return nums
 
 
-def judge_final_poses(position, index, garment_index):
+def wm_judge_final_poses(position, index, garment_index):
     # if file not exist, create it
     if not os.path.exists("Env_Eval/washmachine_record.txt"):
         with open("Env_Eval/washmachine_record.txt", "w") as file:
@@ -351,6 +353,242 @@ def judge_final_poses(position, index, garment_index):
         record_success_failure(success, "Env_Eval/washmachine_record.txt")
 
     return garment_index, success
+
+
+def sofa_judge_final_poses(position, index, garment_index):
+    for i in range(len(garment_index)):
+        if i == index:
+            print(f"garment_{i} position: {position[i]}")
+            z = position[index][2]
+            y = position[index][1]
+            if z > 0.3 or y > 1.20:
+                record_success_failure(
+                    False, "Env_Eval/sofa_record.txt", "final pose not correct"
+                )
+
+            delete_prim(f"/World/Garment/garment_{index}")
+            garment_index[i] = False
+        elif garment_index[i]:
+            print(f"garment_{i} position: {position[i]}")
+            if (position[i][2] < 0.35 and position[i][2] > 0.15) or (
+                position[i][1] > 1.20 and position[i][1] < 1.55
+            ):
+                record_success_failure(
+                    False,
+                    "Env_Eval/sofa_record.txt",
+                    "other garment final pose not correct",
+                )
+            if (
+                position[i][2] < 0.35
+                or position[i][1] < 1.55
+                or position[i][0] > 0.45
+                or position[i][0] < -0.45
+                or position[i][1] > 2.5
+            ):
+                delete_prim(f"/World/Garment/garment_{i}")
+                garment_index[i] = False
+
+    record_success_failure(True, "Env_Eval/sofa_record.txt", " success")
+
+    return garment_index
+
+
+def basket_judge_final_poses(position, index, garment_index):
+    for i in range(len(garment_index)):
+        if i == index:
+            print(f"garment_{i} position: {position[i]}")
+            z = position[index][2]
+            y = position[index][1]
+            x = position[index][0]
+            if z > 0.35 or y > -1.2 or x < 5.27:
+                record_success_failure(
+                    False, "Env_Eval/basket_record.txt", "final pose not correct"
+                )
+
+            delete_prim(f"/World/Garment/garment_{index}")
+            print(f"detele garment_{index}")
+            garment_index[i] = False
+        elif garment_index[i]:
+            print(f"garment_{i} position: {position[i]}")
+            z = position[i][2]
+            y = position[i][1]
+            x = position[i][0]
+            if not (
+                x > 4.52
+                and x < 5.14
+                and y > -1.01
+                and y < -0.62
+                and z > 0.50906
+                and z < 0.84742
+            ) and (z > 0.35 or y > -1.2 or x < 5.27):
+                record_success_failure(
+                    False,
+                    "Env_Eval/basket_record.txt",
+                    "other garment final pose not correct",
+                )
+            if not (
+                x > 4.52
+                and x < 5.14
+                and y > -1.01
+                and y < -0.62
+                and z > 0.50906
+                and z < 0.84742
+            ):
+                delete_prim(f"/World/Garment/garment_{i}")
+                print(f"detele garment_{i}")
+                garment_index[i] = False
+
+    record_success_failure(True, "Env_Eval/basket_record.txt")
+
+    return garment_index
+
+
+def load_sofa_transport_helper(world: World):
+    cube_list = []
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_1",
+            position=[-0.6, 2.18897, 0.70],
+            prim_path="/World/transport_helper/transport_helper_1",
+            scale=np.array([2.15535, 3.38791, 0.01165]),
+            orientation=euler_angles_to_quat([0, 45, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_2",
+            position=[0.6, 2.18897, 0.70],
+            prim_path="/World/transport_helper/transport_helper_2",
+            scale=np.array([2.15535, 3.38791, 0.01165]),
+            orientation=euler_angles_to_quat([0, -45, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_3",
+            position=[0.0, 1.3475, 0.82],
+            prim_path="/World/transport_helper/transport_helper_3",
+            scale=np.array([3.1503, 1.29183, 0.01118]),
+            orientation=euler_angles_to_quat([-45, 0, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_4",
+            position=[0.0, 2.52661, 0.95755],
+            prim_path="/World/transport_helper/transport_helper_4",
+            scale=np.array([3.1503, 2.0, 0.01118]),
+            orientation=euler_angles_to_quat([75, 0, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_5",
+            position=[0.0, 1.62, -0.06],
+            prim_path="/World/transport_helper/transport_helper_5",
+            scale=np.array([2.70, 0.01, 1.0]),
+            orientation=euler_angles_to_quat([0, 0, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    for cube in cube_list:
+        world.scene.add(cube)
+
+    return cube_list
+
+
+def load_basket_transport_helper(world: World):
+    cube_list = []
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_1",
+            position=[3.76192, -0.47743, 1.5777],
+            prim_path="/World/transport_helper/transport_helper_1",
+            scale=np.array([2.15535, 3.38791, 0.01165]),
+            orientation=euler_angles_to_quat([0, 45, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_2",
+            position=[5.90925, -0.47743, 1.57852],
+            prim_path="/World/transport_helper/transport_helper_2",
+            scale=np.array([2.15535, 3.38791, 0.01165]),
+            orientation=euler_angles_to_quat([0, -45, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_3",
+            position=[4.89684, -1.46591, 1.26201],
+            prim_path="/World/transport_helper/transport_helper_3",
+            scale=np.array([3.1503, 1.29183, 0.01118]),
+            orientation=euler_angles_to_quat([-45, 0, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_4",
+            position=[4.89684, 0.04995, 1.52616],
+            prim_path="/World/transport_helper/transport_helper_4",
+            scale=np.array([3.1503, 2.0, 0.01118]),
+            orientation=euler_angles_to_quat([45, 0, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    cube_list.append(
+        FixedCuboid(
+            name="transport_helper_5",
+            position=[0.0, 1.62, -0.06],
+            prim_path="/World/transport_helper/transport_helper_5",
+            scale=np.array([2.70, 0.01, 1.0]),
+            orientation=euler_angles_to_quat([0, 0, 0], degrees=True),
+            size=1.0,
+            color=np.array([0.94118, 0.90196, 0.54902]),
+            visible=False,
+        )
+    )
+
+    for cube in cube_list:
+        world.scene.add(cube)
+
+    return cube_list
 
 
 def add_wm_door(world):
@@ -383,12 +621,11 @@ def furthest_point_sampling(points, colors=None, semantics=None, n_samples=4096)
     """
     # Convert points to PyTorch tensor if not already and move to GPU
     # print(colors)
-    if len(points) == 0:
-        return points, colors, semantics
     points = torch.Tensor(points).cuda()  # [N, 3]
     if colors is not None:
         colors = torch.Tensor(colors).cuda()
     if semantics is not None:
+        semantics = semantics.astype(np.int32)
         semantics = torch.Tensor(semantics).cuda()
 
     # Number of points
@@ -427,3 +664,11 @@ def furthest_point_sampling(points, colors=None, semantics=None, n_samples=4096)
         )  # [S, 3]
     elif colors is not None:
         return points[sample_inds].cpu().numpy(), colors[sample_inds].cpu().numpy()
+
+
+def write_rgb_image(rgb_data, filename):
+    from PIL import Image
+
+    image = Image.fromarray(rgb_data)
+    image.save(filename)
+    cprint(f"write to .png file successful : {filename}", "magenta")

@@ -65,13 +65,20 @@ class WrapGarment:
             self.garment_mesh_path.append(garment.get_garment_prim_path())
             self.garment_group.append(garment)
 
-    def get_cur_poses(self, garment_index):
+    def washmachine_get_cur_poses(self, garment_index):
         cur_pose = []
         for i in range(self.garment_num):
             if garment_index[i] is False:
                 pose = [-1.0, -0.55, 0.0]
             else:
                 pose = self.garment_group[i].garment_mesh.get_world_pose()[0]
+            cur_pose.append(pose)
+        return cur_pose
+
+    def get_cur_poses(self):
+        cur_pose = []
+        for i in range(self.garment_num):
+            pose = self.garment_group[i].garment_mesh.get_world_pose()[0]
             cur_pose.append(pose)
         return cur_pose
 

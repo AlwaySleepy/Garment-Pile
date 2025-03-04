@@ -11,14 +11,13 @@ class Config:
         # sequence:"XYZ", input degrees, e.g.[0.0, 0.0, 90.0]
         self.robot_orientation = [0.0, 0.0, 0.0]
 
-        self.target_positions = [  # franka move positions sequence
-            [-0.15, -0.05, 0.55],  # ready to enter washing machine(enter_point_1)
-            # [0.0, -0.05, 0.58],   # enter washing machine(enter_point_2 and leave_point_1)
-            # [-0.35, -0.05, 0.65],     # leave washing machine(leave_point_2)
-            [-0.8, -0.05, 0.85],
-            [-1.2, -0.55, 1.1],  # put garment into target position(leave_point_3)
-            # [-0.95, -0.65, 1.1]
+        # franka move positions sequence
+        self.target_positions = [
+            [-0.15, -0.05, 0.55],  # Enter Wash Machine
+            [-0.8, -0.05, 0.85],  # Retrieve out the garment from Wash Machine
+            [-1.2, -0.55, 1.1],  # Move to the basket
         ]
+
         # ------------Wash_Machine Config------------ #
         self.wm_position = [-0.05, 0.0, 0.58]  # sequence:"XYZ"
 
@@ -34,7 +33,7 @@ class Config:
 
         # ------------Room Config------------ #
         # Room_Usd_Path(no need to change)
-        self.room_usd_path = self.path + "/Assets/Scene/kitchen.usd"
+        self.room_usd_path = self.path + "/Assets/Scene/wash_machine_scene/scene.usd"
 
         self.room_position = [-3.39737, -1.65851, 0.0]  # sequence:"XYZ"
 
@@ -91,9 +90,8 @@ class Config:
         self.recording_camera_orientation = [0, 22, 30]
 
         # ------------Garment Config------------ #
-
         # Please make sure the length of (position/orientation/scale) array
-        # exactly match the garment num
+        # exactly match or more than the garment num.
         self.garment_num = 4
 
         self.garment_position = [
@@ -126,7 +124,7 @@ class Config:
             [0.0065, 0.0065, 0.0065],
         ]
 
-        # Gatment_Usd_Path(no need to change)
+        # Garment_Usd_Path(no need to change)
         self.clothpath = {
             "cloth0": self.path
             + "/Assets/Garment/Dress/Long_NoSleeve/DLNS_Dress003_0/DLNS_Dress003_0_obj.usd",
@@ -455,81 +453,3 @@ class Config:
             + "/Assets/Garment/Dress/Short_LongSleeve/DLLS_Dress054_1/DLLS_Dress054_1_obj.usd",
             "cloth152": self.path + "/Assets/Garment/Hat/HA_Hat012/HA_Hat012_obj.usd",
         }
-
-    def get_replicator_robot(self):
-        robot_pos = []
-        for i in range(-2, 3):
-            for j in range(-2, 3):
-                pos = []
-                pos.append(self.robot_position[0] + i * 2)
-                pos.append(self.robot_position[1] + j * 2)
-                pos.append(self.robot_position[2])
-                robot_pos.append(pos)
-
-        return robot_pos
-
-    def get_replicator_wm(self):
-        wm_pos = []
-        for i in range(-2, 3):
-            for j in range(-2, 3):
-                pos = []
-                pos.append(self.wm_position[0] + i * 2)
-                pos.append(self.wm_position[1] + j * 2)
-                pos.append(self.wm_position[2])
-                wm_pos.append(pos)
-
-        return wm_pos
-
-    def get_replicator_garment(self):
-        garment_pos = []
-        for i in range(-2, 3):
-            for j in range(-2, 3):
-                g_pos = []
-                for k in range(self.garment_num):
-                    pos = []
-                    pos.append(self.garment_position[k][0] + i * 2)
-                    pos.append(self.garment_position[k][1] + j * 2)
-                    pos.append(self.garment_position[k][2])
-                    g_pos.append(pos)
-                garment_pos.append(g_pos)
-
-        return garment_pos
-
-    def get_replicator_pc(self):
-        wm_pos = []
-        for i in range(-2, 3):
-            for j in range(-2, 3):
-                pos = []
-                pos.append(self.point_cloud_camera_position[0] + i * 2)
-                pos.append(self.point_cloud_camera_position[1] + j * 2)
-                pos.append(self.point_cloud_camera_position[2])
-                wm_pos.append(pos)
-
-        return wm_pos
-
-    def get_replicator_rc(self):
-        wm_pos = []
-        for i in range(-2, 3):
-            for j in range(-2, 3):
-                pos = []
-                pos.append(self.recording_camera_position[0] + i * 2)
-                pos.append(self.recording_camera_position[1] + j * 2)
-                pos.append(self.recording_camera_position[2])
-                wm_pos.append(pos)
-
-        return wm_pos
-
-    def get_replicator_tp(self):
-        target_pos = []
-        for i in range(-2, 3):
-            for j in range(-2, 3):
-                t_pos = []
-                for k in range(len(self.target_positions)):
-                    pos = []
-                    pos.append(self.target_positions[k][0] + i * 2)
-                    pos.append(self.target_positions[k][1] + j * 2)
-                    pos.append(self.target_positions[k][2])
-                    t_pos.append(pos)
-                target_pos.append(t_pos)
-
-        return target_pos

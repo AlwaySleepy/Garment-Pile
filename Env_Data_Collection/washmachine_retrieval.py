@@ -45,16 +45,16 @@ from Env_Config.Utils_Project.utils import (
     change_door_pos,
     compare_position_before_and_after,
     get_unique_filename,
-    judge_final_poses,
+    wm_judge_final_poses,
     load_conveyor_belt,
     load_washmachine_model,
     record_success_failure,
     write_ply,
     write_ply_with_colors,
 )
-from Env_Config.Utils_Project.Collision_group import Collision_Group
+from Env_Config.Utils_Project.WM_Collision_Group import Collision_Group
 from Env_Config.Utils_Project.AttachmentBlock import AttachmentBlock
-from Env_Config.Camera.Point_Cloud_Camera import Point_Cloud_Camera
+from Env_Config.Camera.WashMachine_Point_Cloud_Camera import Point_Cloud_Camera
 from Env_Config.Camera.Recording_Camera import Recording_Camera
 from Env_Config.Model.pointnet2_Retrieve_Model import Retrieve_Model
 from Env_Config.Model.pointnet2_Place_Model import Place_Model
@@ -143,13 +143,31 @@ class washmachineEnv:
         )
 
         # load room
-        # self.room = Wrap_room(self.config.room_position, self.config.room_orientation, self.config.room_scale, self.config.room_usd_path, self.config.room_prim_path)
+        # self.room = Wrap_room(
+        #     self.config.room_position,
+        #     self.config.room_orientation,
+        #     self.config.room_scale,
+        #     self.config.room_usd_path,
+        #     self.config.room_prim_path,
+        # )
 
         # load basket
-        # self.basket=Wrap_basket(self.config.basket_position,self.config.basket_orientation,self.config.basket_scale,self.config.basket_usd_path,self.config.basket_prim_path)
+        # self.basket = Wrap_basket(
+        #     self.config.basket_position,
+        #     self.config.basket_orientation,
+        #     self.config.basket_scale,
+        #     self.config.basket_usd_path,
+        #     self.config.basket_prim_path,
+        # )
 
         # load base
-        # self.base=Wrap_base(self.config.base_position,self.config.base_orientation,self.config.base_scale,self.config.base_usd_path,self.config.base_prim_path)
+        # self.base = Wrap_base(
+        #     self.config.base_position,
+        #     self.config.base_orientation,
+        #     self.config.base_scale,
+        #     self.config.base_usd_path,
+        #     self.config.base_prim_path,
+        # )
 
         # load garment
         self.garments = WrapGarment(
@@ -208,7 +226,6 @@ class washmachineEnv:
             if i == 400:
                 self.scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(1.5, 0.0, 0.05))
                 self.scene.CreateGravityMagnitudeAttr().Set(9.8)
-            # print(i)
             if i == 550:  # 2200
                 print("ready to change")
                 # return to the normal gravity direction
@@ -291,17 +308,21 @@ class washmachineEnv:
             pick_point, max_value, output = self.point_cloud_camera.get_model_point()
             print(pick_point)
 
-        # filename,self.ply_counter=get_unique_filename(base_filename=f"data/pointcloud/pointcloud",extension=".ply")
+        # record point cloud
+        if not os.path.exists("Data/Retrieval/pointcloud"):
+            os.makedirs("Data/Retrieval/pointcloud")
+        filename, self.ply_counter = get_unique_filename(
+            base_filename=f"Data/Retrieval/pointcloud/pc", extension=".ply"
+        )
+        write_ply_with_colors(
+            points=self.point_cloud, colors=self.colors, filename=filename
+        )
 
-        # write_ply_with_colors(points=self.point_cloud,colors=self.colors,filename=filename)
         self.cur = self.point_cloud_camera.get_cloth_picking()
         self.id = self.point_cloud_camera.id
         print(f"picking {self.cur}")
         # record pick point
         print("get position:", pick_point)
-        # with open("Env_Eval/washmachine_record.txt", 'a') as file:
-
-        #     file.write(f"{pick_point[0][0]} {pick_point[0][1]} {pick_point[0][2]} {self.ply_counter} ")
 
         # attach block to pick point
         self.set_attach_to_garment(pick_point)
@@ -326,19 +347,22 @@ class washmachineEnv:
             if len(self.point_cloud_camera.get_point_cloud_data()) == 0:
                 break
             pointcloud, rgb = self.point_cloud_camera.get_point_cloud_data()
-            # print(pointcloud)
             if not isinstance(pointcloud, np.ndarray):
                 pointcloud = np.array(pointcloud)
-            # print(pointcloud)
             if len(pointcloud) == 0 or pointcloud.ndim != 2 or pointcloud.shape[1] != 3:
                 break
-            util.flag_record = True
+            # util.flag_record = True
 
             self.recording_camera.judge = True
 
             self.get_point_cloud_data()
 
             pick_point = self.pick_point()
+
+            with open("Data_WashMachine/Retrieve/Record.txt", "a") as file:
+                file.write(
+                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {self.ply_count} "
+                )
 
             thread_judge = threading.Thread(
                 target=self.recording_camera.judge_contact_with_ground
@@ -365,16 +389,20 @@ class washmachineEnv:
             )
 
             print(f"success flag:{success}")
-            filename = get_unique_filename(
-                base_filename=f"data/retrieval/data", extension=".npz"
-            )
-            np.savez(
-                file=filename,
-                point_cloud=self.point_cloud,
-                pick_point=pick_point,
-                flag=success,
-            )
-            print(f"save data into {filename}")
+
+            # record success or failure
+            record_success_failure(success, self.id)
+
+            # filename = get_unique_filename(
+            #     base_filename=f"data/retrieval/data", extension=".npz"
+            # )
+            # np.savez(
+            #     file=filename,
+            #     point_cloud=self.point_cloud,
+            #     pick_point=pick_point,
+            #     flag=success,
+            # )
+            # print(f"save data into {filename}")
 
         # recording gif
         # self.recording_camera.capture=False
@@ -401,7 +429,6 @@ if __name__ == "__main__":
         garment.particle_material.set_particle_friction_scale(3.5)
         garment.particle_material.set_particle_adhesion_scale(1.0)
         garment.particle_material.set_friction(0.2)
-        # garment.particle_material.set_damping(5)
 
     env.remove_conveyor_belt()
 

@@ -182,7 +182,7 @@ class Recording_Camera:
         """
         self.capture = False
 
-    def draw_point_cloud(self):
+    def draw_point_cloud(self, save_path: str = None):
         # get point_cloud data
         self.data = self.annotator.get_data()
         self.point_cloud = self.data["data"]
@@ -208,6 +208,5 @@ class Recording_Camera:
         ax.scatter(x, y, z, c=self.colors, s=10)
         ax.view_init(elev=20, azim=180)
         # get suitable file name
-        filename = get_unique_filename("data/test/test")
-        # save file
-        plt.savefig(filename)
+        if save_path is not None:
+            plt.savefig(save_path)
