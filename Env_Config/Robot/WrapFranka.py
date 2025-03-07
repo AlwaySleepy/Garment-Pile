@@ -255,7 +255,7 @@ class WrapFranka:
             return False
         elif np.isnan(error):
             self.world.stop()
-            record_success_failure(False, "Env_Eval/sofa_record.txt", str="franka fly")
+            record_success_failure(False, error_record_file, str="franka fly")
 
         else:
             return True
@@ -346,17 +346,17 @@ class WrapFranka:
 
         position = torch.Tensor(target_positions[0])
         cprint("start to enter the initial point above sofa", "magenta")
-        while not self.check_gripper_arrive(position):
+        while not self.check_gripper_arrive(position, error_record_file):
             self.RMPflow_Move(position)
 
         # catch the block
         reach_position = attach_block.get_block_position().cpu()
         reach_position = reach_position[0]
         cprint(f"start to reach the fetch point : {reach_position}", "magenta")
-        while not self.check_gripper_arrive(reach_position):
+        while not self.check_gripper_arrive(reach_position, error_record_file):
             if self.error_nochange_epoch >= 100:
                 record_success_failure(
-                    False, "Env_Eval/sofa_record.txt", str="pick_point is unreachable"
+                    False, error_record_file, str="pick_point is unreachable"
                 )
                 self.error_nochange_epoch = 0
                 return False
@@ -374,10 +374,10 @@ class WrapFranka:
         for i in range(len(target_positions)):
             position = torch.Tensor(target_positions[i])
             if i == 0:
-                while not self.check_gripper_arrive(position):
+                while not self.check_gripper_arrive(position, error_record_file):
                     self.move_block_follow_gripper(attach_block, position)
             else:
-                while not self.check_gripper_arrive(position):
+                while not self.check_gripper_arrive(position, error_record_file):
                     self.move_block_follow_gripper(
                         attach_block, position, target_orientation=[0, 90, 0]
                     )
@@ -400,22 +400,22 @@ class WrapFranka:
 
         position = torch.Tensor(target_positions[1])
         cprint("start to enter the initial point above basket", "magenta")
-        while not self.check_gripper_arrive(position):
+        while not self.check_gripper_arrive(position, error_record_file):
             self.RMPflow_Move(position, orientation=[0.0, 90.0, 90.0])
 
         position = torch.Tensor(target_positions[0])
         cprint("start to enter the initial point above basket", "magenta")
-        while not self.check_gripper_arrive(position):
+        while not self.check_gripper_arrive(position, error_record_file):
             self.RMPflow_Move(position)
 
         # catch the block
         reach_position = attach_block.get_block_position().cpu()
         reach_position = reach_position[0]
         cprint(f"start to reach the fetch point : {reach_position}", "magenta")
-        while not self.check_gripper_arrive(reach_position):
+        while not self.check_gripper_arrive(reach_position, error_record_file):
             if self.error_nochange_epoch >= 200:
                 record_success_failure(
-                    False, "Env_Eval/basket_record.txt", str="pick_point is unreachable"
+                    False, error_record_file, str="pick_point is unreachable"
                 )
                 self.error_nochange_epoch = 0
                 return False
@@ -430,16 +430,16 @@ class WrapFranka:
         for i in range(len(target_positions)):
             position = torch.Tensor(target_positions[i])
             if i == 0:
-                while not self.check_gripper_arrive(position):
+                while not self.check_gripper_arrive(position, error_record_file):
                     self.move_block_follow_gripper(attach_block, position)
             elif i == 1:
                 continue
-                while not self.check_gripper_arrive(position):
+                while not self.check_gripper_arrive(position, error_record_file):
                     self.move_block_follow_gripper(
                         attach_block, position, target_orientation=[0, 90, 90]
                     )
             else:
-                while not self.check_gripper_arrive(position):
+                while not self.check_gripper_arrive(position, error_record_file):
                     if self.error_nochange_epoch >= 200:
                         record_success_failure(
                             False,

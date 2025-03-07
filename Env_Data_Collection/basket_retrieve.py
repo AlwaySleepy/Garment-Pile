@@ -57,7 +57,25 @@ import Env_Config.Utils_Project.utils as util
 
 
 class BaseEnv:
-    def __init__(self):
+    def __init__(
+        self,
+        random_flag=True,
+        model_path=None,
+        rgb_flag=False,
+        gif_flag=False,
+    ):
+        # random select retrieve point or not
+        self.random_flag = random_flag
+        # if not random, load model
+        if not self.random_flag:
+            self.model_path = model_path
+        else:
+            self.model_path = None
+        # save judge_rgb or not
+        self.rgb_flag = rgb_flag
+        # save gif or not
+        self.gif_flag = gif_flag
+
         # define the world
         self.world = World(backend="torch", device="cpu")
         set_camera_view(
@@ -93,11 +111,19 @@ class BaseEnv:
         )
 
         # load floating_camera (use this camera to generate point_cloud graph)
-        self.point_cloud_camera = Point_Cloud_Camera(
-            self.config.point_cloud_camera_position,
-            self.config.point_cloud_camera_orientation,
-            garment_num=self.config.garment_num,
-        )
+        if not self.random_flag:
+            self.point_cloud_camera = Point_Cloud_Camera(
+                self.config.point_cloud_camera_position,
+                self.config.point_cloud_camera_orientation,
+                garment_num=self.config.garment_num,
+                retrieve_model_path=self.model_path,
+            )
+        else:
+            self.point_cloud_camera = Point_Cloud_Camera(
+                self.config.point_cloud_camera_position,
+                self.config.point_cloud_camera_orientation,
+                garment_num=self.config.garment_num,
+            )
 
         delete_prim(f"/World/Franka")
         # load franka
@@ -159,8 +185,9 @@ class BaseEnv:
         for i in range(self.config.garment_num):
             delete_prim(f"/World/Garment/garment_{i}")
 
-        # self.config.garment_num = random.choices([3, 4, 5], [0.1, 0.45, 0.45])[0]
-        # print(f"garment_num: {self.config.garment_num}")
+        self.config.garment_num = random.choices([3, 4, 5], [0.1, 0.45, 0.45])[0]
+        # self.config.garment_num = 1
+        print(f"garment_num: {self.config.garment_num}")
 
         # load garment
         self.garments = WrapGarment(
@@ -187,6 +214,13 @@ class BaseEnv:
 
         self.world.reset()
 
+        print("--------------------------------------")
+        print("ramdom pick point:", self.random_flag)
+        if not self.random_flag:
+            print("model path:", self.model_path)
+        print("save rgb:", self.rgb_flag)
+        print("save gif:", self.gif_flag)
+
         cprint("world load successfully", "green", on_color="on_green")
 
         # -------------------initialize world------------------- #
@@ -202,7 +236,8 @@ class BaseEnv:
         gif_generation_thread = threading.Thread(
             target=self.recording_camera.get_rgb_graph
         )
-        gif_generation_thread.start()
+        if self.gif_flag:
+            gif_generation_thread.start()
 
         # transport garment
         self.garment_transportation()
@@ -289,43 +324,42 @@ class BaseEnv:
 
             # save pc and rgb graph
             _, self.ply_count = self.point_cloud_camera.save_point_cloud(
-                sample_flag=True, sample_num=4096
+                sample_flag=True,
+                sample_num=4096,
+                save_flag=True,
+                save_path="Data/Basket/Retrieve/point_cloud/pointcloud",
             )
-            self.point_cloud_camera.get_rgb_graph()
+            if self.rgb_flag:
+                self.point_cloud_camera.get_rgb_graph(
+                    save_path="Data/Basket/Retrieve/rgb/rgb"
+                )
             # get pick point
-            # pick_point = self.point_cloud_camera.get_random_point()
-            pick_point = self.point_cloud_camera.get_model_point()
+            if self.random_flag:
+                pick_point = self.point_cloud_camera.get_random_point()[0]
+            else:
+                pick_point = self.point_cloud_camera.get_model_point()
             cprint(f"pick_point: {pick_point}", "cyan")
 
             self.cur = self.point_cloud_camera.get_cloth_picking()
             self.id = self.point_cloud_camera.semantic_id
             cprint(f"picking {self.cur}", "cyan")
 
-            with open("Env_Eval/basket_record.txt", "a") as file:
-                file.write(
-                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {self.ply_count} max_value:{self.point_cloud_camera.max_value}"
-                )
-
-            # define thread to judge contact with ground
-            # judge_thread = threading.Thread(target=self.recording_camera.judge_contact_with_ground)
-            # begin judge_final_pose thread
-            # judge_thread.start()
+            with open("Data/Basket/Retrieve/Record.txt", "a") as file:
+                file.write(f"{pick_point[0]} {pick_point[1]} {pick_point[2]} ")
 
             # set attach block and pick
             self.set_attach_to_garment(attach_position=pick_point)
 
             fetch_result = self.franka.fetch_garment_from_basket(
-                self.config.target_positions, self.attach
+                self.config.target_positions,
+                self.attach,
+                error_record_file="Data/Basket/Retrieve/Record.txt",
             )
             if not fetch_result:
                 cprint("fetch current point failed", "red")
-                # self.recording_camera.stop_judge_contact()
                 self.attach.detach()
                 self.franka.return_to_initial_position([4.85, -1.1, 1.1])
                 continue
-
-            # stop judge contact with ground thread
-            # self.recording_camera.stop_judge_contact()
 
             # detach attach block and open franka's gripper
             self.attach.detach()
@@ -342,7 +376,10 @@ class BaseEnv:
             garment_cur_poses = self.garments.get_cur_poses()
 
             self.garment_index = basket_judge_final_poses(
-                garment_cur_poses, garment_cur_index, self.garment_index
+                garment_cur_poses,
+                garment_cur_index,
+                self.garment_index,
+                save_path="Data/Basket/Retrieve/Record.txt",
             )
 
             for i in range(25):
@@ -543,7 +580,7 @@ class BaseEnv:
 
     def model_pick_whole_procedure(self):
         """
-        Use Aff_model to fetch garment from sofa.
+        Use Aff_model to fetch garment from Basket.
         if affordance is not so good, then
             Use Pick_model and Place_model to adapt the garment.
         """
@@ -669,32 +706,32 @@ class BaseEnv:
 
 if __name__ == "__main__":
 
-    for i in range(1):
+    random_flag = sys.argv[1] == "True"
+    if not random_flag:
+        model_path = sys.argv[2]
+    else:
+        model_path = None
+    rgb_flag = sys.argv[3] == "True"
+    gif_flag = sys.argv[4] == "True"
 
-        env = BaseEnv()
+    env = BaseEnv(
+        random_flag=random_flag,
+        model_path=model_path,
+        rgb_flag=rgb_flag,
+        gif_flag=gif_flag,
+    )
 
-        # env.pick_whole_procedure()
+    env.pick_whole_procedure()
 
-        # env.random_pick_place()
+    if env.gif_flag:
+        env.recording_camera.create_gif(
+            save_path=get_unique_filename("Data/Basket/Retrieve/gif/animation", ".gif")
+        )
 
-        # num = random.choices([1, 2])[0]
+    # while simulation_app.is_running():
+    #     simulation_app.update()
 
-        # print(f"num: {num}")
-
-        # for i in range(num):
-
-        #     env.random_pick_place()
-
-        # env.pick_whole_procedure()
-
-        env.model_pick_whole_procedure()
-
-        # env.recording_camera.create_gif()
-
-        # while simulation_app.is_running():
-        #     simulation_app.update()
-
-        env.world.clear_instance()
+    env.world.clear_instance()
 
 
 # ---------------------coding ending---------------------#

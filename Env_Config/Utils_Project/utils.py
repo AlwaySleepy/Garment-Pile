@@ -213,37 +213,26 @@ def get_unique_filename(base_filename, extension=".png", counter_return=False):
         return filename
 
 
-# flag_record = True
-
-
-# def flush_record_flag():
-#     global flag_record
-#     flag_record = True
-
-
 def record_success_failure(flag: bool, file_path, str=""):
-    # global flag_record
-
-    # print("record success failure flag", flag_record)
-
-    # if flag_record:
-    #     flag_record = False
 
     with open(file_path, "rb") as file:
         file.seek(0, 2)
         file_empty = file.tell() == 0
-        file.seek(-1, 2)
-        last_char = file.read(1)
-
-    if not file_empty and last_char == b"\n":
-        return
-    else:
+        if not file_empty:
+            file.seek(-1, 2)
+            last_char = file.read(1)
+    if file_empty or last_char != b"\n":
         if flag:
+            print("write success")
             with open(file_path, "a") as file:
                 file.write("1 " + "success" + "\n")
         else:
+            print("write failure")
             with open(file_path, "a") as file:
                 file.write("0 " + str + "\n")
+    else:
+        print("No writing")
+        return
 
 
 def read_ply(filename):
@@ -387,16 +376,16 @@ def wm_judge_final_poses(
     return garment_index
 
 
-def sofa_judge_final_poses(position, index, garment_index):
+def sofa_judge_final_poses(
+    position, index, garment_index, save_path: str = "Env_Eval/sofa_record.txt"
+):
     for i in range(len(garment_index)):
         if i == index:
             print(f"garment_{i} position: {position[i]}")
             z = position[index][2]
             y = position[index][1]
             if z > 0.3 or y > 1.20:
-                record_success_failure(
-                    False, "Env_Eval/sofa_record.txt", "final pose not correct"
-                )
+                record_success_failure(False, save_path, "final pose not correct")
 
             delete_prim(f"/World/Garment/garment_{index}")
             garment_index[i] = False
@@ -407,7 +396,7 @@ def sofa_judge_final_poses(position, index, garment_index):
             ):
                 record_success_failure(
                     False,
-                    "Env_Eval/sofa_record.txt",
+                    save_path,
                     "other garment final pose not correct",
                 )
             if (
@@ -420,12 +409,14 @@ def sofa_judge_final_poses(position, index, garment_index):
                 delete_prim(f"/World/Garment/garment_{i}")
                 garment_index[i] = False
 
-    record_success_failure(True, "Env_Eval/sofa_record.txt", " success")
+    record_success_failure(True, save_path, " success")
 
     return garment_index
 
 
-def basket_judge_final_poses(position, index, garment_index):
+def basket_judge_final_poses(
+    position, index, garment_index, save_path: str = "Env_Eval/basket_record.txt"
+):
     for i in range(len(garment_index)):
         if i == index:
             print(f"garment_{i} position: {position[i]}")
@@ -433,9 +424,7 @@ def basket_judge_final_poses(position, index, garment_index):
             y = position[index][1]
             x = position[index][0]
             if z > 0.35 or y > -1.2 or x < 5.27:
-                record_success_failure(
-                    False, "Env_Eval/basket_record.txt", "final pose not correct"
-                )
+                record_success_failure(False, save_path, "final pose not correct")
 
             delete_prim(f"/World/Garment/garment_{index}")
             print(f"detele garment_{index}")
@@ -455,7 +444,7 @@ def basket_judge_final_poses(position, index, garment_index):
             ) and (z > 0.35 or y > -1.2 or x < 5.27):
                 record_success_failure(
                     False,
-                    "Env_Eval/basket_record.txt",
+                    save_path,
                     "other garment final pose not correct",
                 )
             if not (
@@ -470,7 +459,7 @@ def basket_judge_final_poses(position, index, garment_index):
                 print(f"detele garment_{i}")
                 garment_index[i] = False
 
-    record_success_failure(True, "Env_Eval/basket_record.txt")
+    record_success_failure(True, save_path)
 
     return garment_index
 

@@ -37,6 +37,9 @@ class Point_Cloud_Camera:
         resolution=(640, 480),
         prim_path="/World/point_cloud_camera",
         garment_num: int = 1,
+        retrieve_model_path=None,
+        place_model_path=None,
+        pick_model_path=None,
     ):
         # define camera parameters
         self.camera_position = camera_position
@@ -53,6 +56,9 @@ class Point_Cloud_Camera:
             resolution=self.resolution,
         )
         # self.initialize(garment_num)
+        self.retrieve_model_path = retrieve_model_path
+        self.place_model_path = place_model_path
+        self.pick_model_path = pick_model_path
 
     def initialize(self, garment_num: int):
         """
@@ -91,23 +97,31 @@ class Point_Cloud_Camera:
 
         # load model
         self.model = Aff_Model(normal_channel=False).cuda()
-        self.model.load_state_dict(
-            torch.load("Env_Config/Model/basket_retrieve_model_finetuned.pth")
-        )
+        if self.retrieve_model_path is None:
+            self.model.load_state_dict(
+                torch.load("Env_Config/Model/basket_retrieve_model_finetuned.pth")
+            )
+        else:
+            self.model.load_state_dict(torch.load(self.retrieve_model_path))
         self.model.eval()
 
         # load place model
         self.place_model = Place_Model(normal_channel=False).cuda()
-        self.place_model.load_state_dict(
-            torch.load("Env_Config/Model/basket_place_model_finetuned.pth")
-        )
+        if self.place_model_path is None:
+            self.place_model.load_state_dict(
+                torch.load("Env_Config/Model/basket_place_model_finetuned.pth")
+            )
+        else:
+            self.place_model.load_state_dict(torch.load(self.place_model_path))
         self.place_model.eval()
 
-        # load pick model
         self.pick_model = Pick_Model(normal_channel=False).cuda()
-        self.pick_model.load_state_dict(
-            torch.load("Env_Config/Model/basket_pick_model_finetuned.pth")
-        )
+        if self.pick_model_path is None:
+            self.pick_model.load_state_dict(
+                torch.load("Env_Config/Model/basket_pick_model_finetuned.pth")
+            )
+        else:
+            self.pick_model.load_state_dict(torch.load(self.pick_model_path))
         self.pick_model.eval()
 
     def get_point_cloud_data(self, sample_flag: bool = False, sample_num: int = 1024):
@@ -133,35 +147,47 @@ class Point_Cloud_Camera:
 
         return self.point_cloud, self.colors
 
-    def save_point_cloud(self, sample_flag=True, sample_num=4096):
+    def save_point_cloud(
+        self,
+        sample_flag=True,
+        sample_num=4096,
+        save_flag=False,
+        save_path="data/pointcloud/pointcloud",
+    ):
         # get point_cloud data
         self.get_point_cloud_data(sample_flag=sample_flag, sample_num=sample_num)
         # save point_cloud data to .ply file
-        file_name, count = get_unique_filename(
-            "data/pointcloud/pointcloud", extension=".ply"
-        )
-        write_ply_with_colors(
-            points=self.point_cloud, colors=self.colors, filename=file_name
-        )
+
+        file_name, count = get_unique_filename(save_path, extension=".ply")
+        if save_flag:
+            write_ply_with_colors(
+                points=self.point_cloud, colors=self.colors, filename=file_name
+            )
 
         return file_name, count
 
-    def get_rgb_graph(self):
+    def get_rgb_graph(self, save_path="data/rgb/rgb", count=None):
         # get rgb data
         rgb_data = self.camera.get_rgb()
         # save it to .png file
         # import open3d as o3d
         # image = o3d.geometry.Image(np.ascontiguousarray(rgb_data))
         # o3d.io.write_image(get_unique_filename("data/rgb/rgb", ".png"), image)
-        file_name = get_unique_filename("data/rgb/rgb", ".png")
+        if count is None:
+            file_name = get_unique_filename(save_path, ".png")
+        else:
+            file_name = f"{save_path}_{count}.png"
         write_rgb_image(rgb_data, file_name)
 
         return file_name
 
-    def save_pc(self, pointcloud, colors):
-        file_name, count = get_unique_filename(
-            "data/pointcloud/pointcloud", extension=".ply"
-        )
+    def save_pc(
+        self, pointcloud, colors, save_path="data/pointcloud/pointcloud", count=None
+    ):
+        if count is None:
+            file_name, count = get_unique_filename(save_path, extension=".ply")
+        else:
+            file_name = f"{save_path}_{count}.ply"
         write_ply_with_colors(points=pointcloud, colors=colors, filename=file_name)
 
         return file_name, count

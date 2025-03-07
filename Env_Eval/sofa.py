@@ -6,6 +6,7 @@ Include:
 """
 
 # Open the Simulation App
+import os
 import sys
 from omni.isaac.kit import SimulationApp
 
@@ -37,11 +38,9 @@ from Env_Config.Garment.Garment import WrapGarment, Garment
 from Env_Config.Utils_Project.utils import (
     get_unique_filename,
     sofa_judge_final_poses,
-    record_success_failure,
     write_ply,
     write_ply_with_colors,
     load_sofa_transport_helper,
-    flush_record_flag,
 )
 from Env_Config.Utils_Project.Sofa_Collision_Group import Collision_Group
 from Env_Config.Utils_Project.AttachmentBlock import AttachmentBlock
@@ -256,8 +255,6 @@ class BaseEnv:
 
     def pick_whole_procedure(self):
         while True:
-            # flush record flag and make .txt file to be writable
-            flush_record_flag()
             pc_judge, color_judge = self.point_cloud_camera.get_point_cloud_data()
             # print(pc_judge)
             if pc_judge is None:
@@ -332,7 +329,6 @@ class BaseEnv:
             # self.franka.return_to_initial_position(self.config.initial_position)
 
     def random_pick_place(self):
-        flush_record_flag()
         pick_pc, pick_color = self.point_cloud_camera.get_point_cloud_data(
             sample_flag=True, sample_num=4096
         )
@@ -421,7 +417,6 @@ class BaseEnv:
                 )
 
     def random_pick_model_place(self):
-        flush_record_flag()
         pick_pc, pick_color = self.point_cloud_camera.get_point_cloud_data(
             sample_flag=True, sample_num=4096
         )
@@ -494,13 +489,24 @@ class BaseEnv:
         self.stir = False
 
         while True:
-            flush_record_flag()
             aff_pc, aff_color = self.point_cloud_camera.get_point_cloud_data(
                 sample_flag=True, sample_num=4096
             )
             if aff_pc is None:
                 cprint("Finish picking all garments", "green", on_color="on_green")
-                break
+                simulation_app.close()
+
+            if not os.path.exists("Env_Eval/sofa_record.txt"):
+                with open("Env_Eval/sofa_record.txt", "w") as f:
+                    f.write("result ")
+            else:
+                with open("Env_Eval/sofa_record.txt", "rb") as file:
+                    file.seek(-1, 2)
+                    last_char = file.read(1)
+                    if last_char == b"\n":
+                        with open("Env_Eval/sofa_record.txt", "a") as f:
+                            f.write("result ")
+
             aff_ratio = self.point_cloud_camera.get_pc_ratio()
             cprint(f"aff_ratio: {aff_ratio}", "cyan")
 

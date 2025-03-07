@@ -371,21 +371,21 @@ class washmachineEnv:
         # ------------------------------------------------------------------ #
 
         while True:
+
             success = False
             # pass invalid cases
-            if len(self.point_cloud_camera.get_point_cloud_data()) == 0:
-                break
-            pointcloud, rgb = self.point_cloud_camera.get_point_cloud_data()
-            if not isinstance(pointcloud, np.ndarray):
-                pointcloud = np.array(pointcloud)
-            if len(pointcloud) == 0 or pointcloud.ndim != 2 or pointcloud.shape[1] != 3:
-                break
+            self.point_cloud, self.colors = (
+                self.point_cloud_camera.get_point_cloud_data()
+            )
 
-            util.flag_record = True
+            if self.point_cloud is None:
+                print("picking all garments successfully!")
+                simulation_app.close()
+
+            with open("Env_Eval/washmachine_record.txt", "a") as f:
+                f.write("result ")
 
             self.recording_camera.judge = True
-
-            self.get_point_cloud_data()
 
             set_prim_visibility(self.franka._robot.prim, True)
 
@@ -434,7 +434,7 @@ class washmachineEnv:
             max_value, indices = torch.max(garment_model_output, dim=1, keepdim=False)
             pick_max_value = max_value.item()
 
-            count_below_threshold = (garment_model_output > 0.9).sum().item()
+            count_below_threshold = (garment_model_output > 0.93).sum().item()
             total_elements = garment_model_output.numel()
             pick_percentage_below_threshold = count_below_threshold / total_elements
 
@@ -488,7 +488,7 @@ class washmachineEnv:
 
             place_max_value = max_value.item()
 
-            count_below_threshold = (output > 0.9).sum().item()
+            count_below_threshold = (output > 0.93).sum().item()
             total_elements = output.numel()
             place_percentage_below_threshold = count_below_threshold / total_elements
 

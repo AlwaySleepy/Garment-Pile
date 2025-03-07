@@ -57,7 +57,22 @@ import Env_Config.Utils_Project.utils as util
 
 
 class BaseEnv:
-    def __init__(self):
+    def __init__(
+        self,
+        random_flag=True,
+        model_path=None,
+        rgb_flag=False,
+    ):
+        # random select retrieve point or not
+        self.random_flag = random_flag
+        # if not random, load model
+        if not self.random_flag:
+            self.model_path = model_path
+        else:
+            self.model_path = None
+        # save judge_rgb or not
+        self.rgb_flag = rgb_flag
+
         # define the world
         self.world = World(backend="torch", device="cpu")
         set_camera_view(
@@ -93,11 +108,19 @@ class BaseEnv:
         )
 
         # load floating_camera (use this camera to generate point_cloud graph)
-        self.point_cloud_camera = Point_Cloud_Camera(
-            self.config.point_cloud_camera_position,
-            self.config.point_cloud_camera_orientation,
-            garment_num=self.config.garment_num,
-        )
+        if not self.random_flag:
+            self.point_cloud_camera = Point_Cloud_Camera(
+                self.config.point_cloud_camera_position,
+                self.config.point_cloud_camera_orientation,
+                garment_num=self.config.garment_num,
+                place_model_path=self.model_path,
+            )
+        else:
+            self.point_cloud_camera = Point_Cloud_Camera(
+                self.config.point_cloud_camera_position,
+                self.config.point_cloud_camera_orientation,
+                garment_num=self.config.garment_num,
+            )
 
         delete_prim(f"/World/Franka")
         # load franka
@@ -159,8 +182,9 @@ class BaseEnv:
         for i in range(self.config.garment_num):
             delete_prim(f"/World/Garment/garment_{i}")
 
-        # self.config.garment_num = random.choices([3, 4, 5], [0.1, 0.45, 0.45])[0]
-        # print(f"garment_num: {self.config.garment_num}")
+        self.config.garment_num = random.choices([3, 4, 5], [0.1, 0.45, 0.45])[0]
+        # self.config.garment_num = 1
+        print(f"garment_num: {self.config.garment_num}")
 
         # load garment
         self.garments = WrapGarment(
@@ -187,6 +211,12 @@ class BaseEnv:
 
         self.world.reset()
 
+        print("--------------------------------------")
+        print("ramdom pick point:", self.random_flag)
+        if not self.random_flag:
+            print("model path:", self.model_path)
+        print("save rgb:", self.rgb_flag)
+
         cprint("world load successfully", "green", on_color="on_green")
 
         # -------------------initialize world------------------- #
@@ -197,12 +227,6 @@ class BaseEnv:
         self.recording_camera.initialize()
 
         cprint("camera initialize successfully", "green")
-
-        # begin to record gif
-        gif_generation_thread = threading.Thread(
-            target=self.recording_camera.get_rgb_graph
-        )
-        gif_generation_thread.start()
 
         # transport garment
         self.garment_transportation()
@@ -289,43 +313,42 @@ class BaseEnv:
 
             # save pc and rgb graph
             _, self.ply_count = self.point_cloud_camera.save_point_cloud(
-                sample_flag=True, sample_num=4096
+                sample_flag=True,
+                sample_num=4096,
+                save_flag=True,
+                save_path="Data/Basket/Retrieve/point_cloud/pointcloud",
             )
-            self.point_cloud_camera.get_rgb_graph()
+            if self.rgb_flag:
+                self.point_cloud_camera.get_rgb_graph(
+                    save_path="Data/Basket/Retrieve/rgb/rgb"
+                )
             # get pick point
-            # pick_point = self.point_cloud_camera.get_random_point()
-            pick_point = self.point_cloud_camera.get_model_point()
+            if self.random_flag:
+                pick_point = self.point_cloud_camera.get_random_point()[0]
+            else:
+                pick_point = self.point_cloud_camera.get_model_point()
             cprint(f"pick_point: {pick_point}", "cyan")
 
             self.cur = self.point_cloud_camera.get_cloth_picking()
             self.id = self.point_cloud_camera.semantic_id
             cprint(f"picking {self.cur}", "cyan")
 
-            with open("Env_Eval/basket_record.txt", "a") as file:
-                file.write(
-                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {self.ply_count} max_value:{self.point_cloud_camera.max_value}"
-                )
-
-            # define thread to judge contact with ground
-            # judge_thread = threading.Thread(target=self.recording_camera.judge_contact_with_ground)
-            # begin judge_final_pose thread
-            # judge_thread.start()
+            with open("Data/Basket/Retrieve/Record.txt", "a") as file:
+                file.write(f"{pick_point[0]} {pick_point[1]} {pick_point[2]} ")
 
             # set attach block and pick
             self.set_attach_to_garment(attach_position=pick_point)
 
             fetch_result = self.franka.fetch_garment_from_basket(
-                self.config.target_positions, self.attach
+                self.config.target_positions,
+                self.attach,
+                error_record_file="Data/Basket/Retrieve/Record.txt",
             )
             if not fetch_result:
                 cprint("fetch current point failed", "red")
-                # self.recording_camera.stop_judge_contact()
                 self.attach.detach()
                 self.franka.return_to_initial_position([4.85, -1.1, 1.1])
                 continue
-
-            # stop judge contact with ground thread
-            # self.recording_camera.stop_judge_contact()
 
             # detach attach block and open franka's gripper
             self.attach.detach()
@@ -342,7 +365,10 @@ class BaseEnv:
             garment_cur_poses = self.garments.get_cur_poses()
 
             self.garment_index = basket_judge_final_poses(
-                garment_cur_poses, garment_cur_index, self.garment_index
+                garment_cur_poses,
+                garment_cur_index,
+                self.garment_index,
+                save_path="Data/Basket/Retrieve/Record.txt",
             )
 
             for i in range(25):
@@ -358,28 +384,48 @@ class BaseEnv:
         pick_pc, pick_color = self.point_cloud_camera.get_point_cloud_data(
             sample_flag=True, sample_num=4096
         )
-        self.point_cloud_camera.get_rgb_graph()
-        # pick_point = self.point_cloud_camera.get_random_point()[0]
-        # place_point = self.point_cloud_camera.get_random_point()[0]
-        pick_point = self.point_cloud_camera.get_pick_point(pick_pc)
-        place_point = self.point_cloud_camera.get_place_point(pick_pc, pick_point)
+        pick_ratio = self.point_cloud_camera.get_pc_ratio()
+        cprint(f"pick_ratio: {pick_ratio}", "cyan")
+
+        if pick_ratio > 0.3:
+            return
+
+        if self.rgb_flag:
+            self.point_cloud_camera.get_rgb_graph(
+                save_path="Data/Basket/Stir_Random/rgb/rgb"
+            )
+
+        pick_point = self.point_cloud_camera.get_random_point()[0]
+        place_point = self.point_cloud_camera.get_random_point()[0]
         distance = np.linalg.norm(pick_point - place_point)
         print(f"distance: {distance}")
-        # while (distance < 0.1):
-        #     _, self.ply_count = self.point_cloud_camera.save_pc(pick_pc, pick_color)
-        #     with open("Env_Eval/basket_record.txt", 'a') as file:
-        #         file.write(f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {place_point[0]} {place_point[1]} {place_point[2]} {self.ply_count} 0 distance_between_points_is_too_close" + '\n')
-        #     pick_pc, pick_color = self.point_cloud_camera.get_point_cloud_data(sample_flag=True, sample_num=4096)
-        #     pick_point = self.point_cloud_camera.get_random_point()[0]
-        #     place_point = self.point_cloud_camera.get_random_point()[0]
-        #     distance = np.linalg.norm(pick_point - place_point)
-        #     print(f"distance: {distance}")
+        while distance < 0.15:
+            _, self.ply_count = self.point_cloud_camera.save_pc(
+                pick_pc,
+                pick_color,
+                save_path="Data/Basket/Stir_Random/point_cloud/pointcloud",
+            )
+            with open("Data/Basket/Stir_Random/Record.txt", "a") as file:
+                file.write(
+                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {place_point[0]} {place_point[1]} {place_point[2]} 0 distance_between_points_is_too_close"
+                    + "\n"
+                )
+            pick_pc, pick_color = self.point_cloud_camera.get_point_cloud_data(
+                sample_flag=True, sample_num=4096
+            )
+            pick_point = self.point_cloud_camera.get_random_point()[0]
+            place_point = self.point_cloud_camera.get_random_point()[0]
+            distance = np.linalg.norm(pick_point - place_point)
+            print(f"distance: {distance}")
+
+        _, self.ply_count = self.point_cloud_camera.save_pc(
+            pick_pc,
+            pick_color,
+            save_path="Data/Basket/Stir_Random/point_cloud/pointcloud",
+        )
 
         cprint(f"pick_point: {pick_point}", "cyan")
         cprint(f"place_point: {place_point}", "cyan")
-
-        # pick_ratio = self.point_cloud_camera.get_pc_ratio()
-        # cprint(f"pick_ratio: {pick_ratio}", 'cyan')
 
         self.set_attach_to_garment(attach_position=pick_point)
 
@@ -393,79 +439,47 @@ class BaseEnv:
 
         if not fetch_result:
             cprint("fetch current point failed", "red")
-            _, self.ply_count = self.point_cloud_camera.save_pc(pick_pc, pick_color)
-            with open("Env_Eval/basket_record.txt", "a") as file:
+            with open("Data/Basket/Stir_Random/Record.txt", "a") as file:
                 file.write(
-                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {place_point[0]} {place_point[1]} {place_point[2]} {self.ply_count} 0 adapt_pick/place_point_unreachable"
+                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {place_point[0]} {place_point[1]} {place_point[2]} 0 adapt_pick/place_point_unreachable"
                     + "\n"
                 )
-            # self.attach.detach()
-            # self.franka.return_to_initial_position(self.config.initial_position)
             return
 
         self.attach.detach()
         self.franka.open()
         self.franka.return_to_initial_position([4.85, -1.1, 1.1])
 
-        pc_judge, color_judge = self.point_cloud_camera.get_point_cloud_data(
+        place_pc, place_color = self.point_cloud_camera.get_point_cloud_data(
             sample_flag=True, sample_num=4096
         )
-        self.point_cloud_camera.get_rgb_graph()
-        exec_pick_point = self.point_cloud_camera.get_model_point()
-        cprint(f"exec_pick_point: {exec_pick_point}", "cyan")
-
-        self.cur = self.point_cloud_camera.get_cloth_picking()
-        self.id = self.point_cloud_camera.semantic_id
-        cprint(f"exec_picking {self.cur}", "cyan")
-
-        self.set_attach_to_garment(attach_position=exec_pick_point)
-        fetch_result = self.franka.fetch_garment_from_basket(
-            self.config.target_positions, self.attach
+        if self.rgb_flag:
+            self.point_cloud_camera.get_rgb_graph(
+                save_path="Data/Basket/Stir_Random/rgb_after_stir/rgb",
+                count=self.ply_count,
+            )
+        _, self.ply_count = self.point_cloud_camera.save_pc(
+            place_pc,
+            place_color,
+            save_path="Data/Basket/Stir_Random/point_cloud_after_stir/pointcloud",
+            count=self.ply_count,
         )
-        if not fetch_result:
-            cprint("fetch current point failed", "red")
-            # self.recording_camera.stop_judge_contact()
-            self.attach.detach()
-            _, self.ply_count = self.point_cloud_camera.save_pc(pick_pc, pick_color)
-            with open("Env_Eval/basket_record.txt", "a") as file:
+
+        place_ratio = self.point_cloud_camera.get_pc_ratio()
+        cprint(f"place_ratio: {place_ratio}", "cyan")
+
+        if place_ratio - pick_ratio > 0.1 or place_ratio > 0.3:
+            with open("Data/Basket/Stir_Random/Record.txt", "a") as file:
                 file.write(
-                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {place_point[0]} {place_point[1]} {place_point[2]} {self.ply_count} 0 exec_pick_point_unreachable"
+                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {place_point[0]} {place_point[1]} {place_point[2]} 1 pick_ratio_{pick_ratio}<->place_ratio_{place_ratio}"
                     + "\n"
                 )
-            # self.attach.detach()
-            # self.franka.return_to_initial_position(self.config.initial_position)
-            return
-
-        # detach attach block and open franka's gripper
-        self.attach.detach()
-        self.franka.open()
-
-        for i in range(125):
-            self.world.step(
-                render=True
-            )  # render the world to wait the garment fall down
-
-        _, self.ply_count = self.point_cloud_camera.save_pc(pick_pc, pick_color)
-        with open("Env_Eval/basket_record.txt", "a") as file:
-            file.write(
-                f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {place_point[0]} {place_point[1]} {place_point[2]} {self.ply_count} "
-            )
-
-        _, self.ply_count = self.point_cloud_camera.save_pc(pc_judge, color_judge)
-
-        garment_cur_index = int(self.cur[8:])
-        print(f"garment_cur_index: {garment_cur_index}")
-
-        garment_cur_poses = self.garments.get_cur_poses()
-
-        self.garment_index = basket_judge_final_poses(
-            garment_cur_poses, garment_cur_index, self.garment_index
-        )
-
-        for i in range(25):
-            self.world.step(
-                render=True
-            )  # render the world to wait the garment disappear
+        else:
+            with open("Data/Basket/Stir_Random/Record.txt", "a") as file:
+                file.write(
+                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {place_point[0]} {place_point[1]} {place_point[2]} 0 pick_ratio_{pick_ratio}<->place_ratio_{place_ratio}"
+                    + "\n"
+                )
 
     def get_highest_ratio(self):
         pick_pc, pick_color = self.point_cloud_camera.get_point_cloud_data(
@@ -477,17 +491,26 @@ class BaseEnv:
             file.write(f"{self.point_cloud_camera.max_value} " + "\n")
 
     def random_pick_model_place(self):
-
         pick_pc, pick_color = self.point_cloud_camera.get_point_cloud_data(
             sample_flag=True, sample_num=4096
         )
         # self.point_cloud_camera.get_rgb_graph()
         pick_ratio = self.point_cloud_camera.get_pc_ratio()
         cprint(f"pick_ratio: {pick_ratio}", "cyan")
-        if pick_ratio > 0.6:
+        if pick_ratio > 0.5:
             return
-        self.point_cloud_camera.get_rgb_graph()
+        _, self.ply_count = self.point_cloud_camera.save_pc(
+            pick_pc,
+            pick_color,
+            save_path="Data/Basket/Stir_Model/point_cloud/pointcloud",
+        )
+        if self.rgb_flag:
+            self.point_cloud_camera.get_rgb_graph(
+                save_path="Data/Basket/Stir_Model/rgb/rgb"
+            )
+        # randomly select pick point
         pick_point = self.point_cloud_camera.get_random_point()[0]
+        # get place point according to Place Model
         place_point = self.point_cloud_camera.get_place_point(
             pick_point=pick_point, pc=pick_pc
         )
@@ -497,7 +520,7 @@ class BaseEnv:
 
         self.set_attach_to_garment(attach_position=pick_point)
 
-        self.config.target_positions[1] = place_point
+        self.config.target_positions[2] = place_point
 
         fetch_result = self.franka.basket_pick_place_procedure(
             self.config.target_positions, self.attach
@@ -505,10 +528,9 @@ class BaseEnv:
 
         if not fetch_result:
             cprint("fetch current point failed", "red")
-            _, self.ply_count = self.point_cloud_camera.save_pc(pick_pc, pick_color)
-            with open("Env_Eval/basket_record.txt", "a") as file:
+            with open("Data/Basket/Stir_Model/Record.txt", "a") as file:
                 file.write(
-                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {self.ply_count} 0 point_unreachable"
+                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} 0 point_unreachable"
                     + "\n"
                 )
             # self.attach.detach()
@@ -522,28 +544,37 @@ class BaseEnv:
         place_pc, place_color = self.point_cloud_camera.get_point_cloud_data(
             sample_flag=True, sample_num=4096
         )
-        self.point_cloud_camera.get_rgb_graph()
+        if self.rgb_flag:
+            self.point_cloud_camera.get_rgb_graph(
+                save_path="Data/Basket/Stir_Model/rgb_after_stir/rgb",
+                count=self.ply_count,
+            )
+        # save place_pc
+        _, self.ply_count = self.point_cloud_camera.save_pc(
+            place_pc,
+            place_color,
+            save_path="Data/Basket/Stir_Model/point_cloud_after_stir/pointcloud",
+            count=self.ply_count,
+        )
         place_ratio = self.point_cloud_camera.get_pc_ratio()
         cprint(f"place_ratio: {place_ratio}", "cyan")
 
-        if place_ratio - pick_ratio > 0.1 or place_ratio > 0.6:
-            _, self.ply_count = self.point_cloud_camera.save_pc(pick_pc, pick_color)
-            with open("Env_Eval/basket_record.txt", "a") as file:
+        if place_ratio - pick_ratio > 0.1 or place_ratio > 0.5:
+            with open("Data/Basket/Stir_Model/Record.txt", "a") as file:
                 file.write(
-                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {self.ply_count} 1 pick_ratio_{pick_ratio}<=place_ratio_{place_ratio}"
+                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} 1 pick_ratio_{pick_ratio}<=place_ratio_{place_ratio}"
                     + "\n"
                 )
         else:
-            _, self.ply_count = self.point_cloud_camera.save_pc(pick_pc, pick_color)
-            with open("Env_Eval/basket_record.txt", "a") as file:
+            with open("Data/Basket/Stir_Model/Record.txt", "a") as file:
                 file.write(
-                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} {self.ply_count} 0 pick_ratio_{pick_ratio}>place_ratio_{place_ratio}"
+                    f"{pick_point[0]} {pick_point[1]} {pick_point[2]} 0 pick_ratio_{pick_ratio}>place_ratio_{place_ratio}"
                     + "\n"
                 )
 
     def model_pick_whole_procedure(self):
         """
-        Use Aff_model to fetch garment from sofa.
+        Use Aff_model to fetch garment from Basket.
         if affordance is not so good, then
             Use Pick_model and Place_model to adapt the garment.
         """
@@ -572,7 +603,7 @@ class BaseEnv:
             aff_ratio = self.point_cloud_camera.get_pc_ratio()
             cprint(f"aff_ratio: {aff_ratio}", "cyan")
 
-            if aff_ratio >= 0.6 or self.stir:
+            if aff_ratio >= 0.5 or self.stir:
                 # _, self.ply_count = self.point_cloud_camera.save_pc(aff_pc, aff_color)
                 # self.point_cloud_camera.get_rgb_graph()
                 cprint("affordance is good, begin to fetch garment!", "green")
@@ -669,32 +700,28 @@ class BaseEnv:
 
 if __name__ == "__main__":
 
-    for i in range(1):
+    random_flag = sys.argv[1] == "True"
+    if not random_flag:
+        model_path = sys.argv[2]
+    else:
+        model_path = None
+    rgb_flag = sys.argv[3] == "True"
 
-        env = BaseEnv()
+    env = BaseEnv(
+        random_flag=random_flag,
+        model_path=model_path,
+        rgb_flag=rgb_flag,
+    )
 
-        # env.pick_whole_procedure()
+    if env.random_flag:
+        env.random_pick_place()
+    else:
+        env.random_pick_model_place()
 
-        # env.random_pick_place()
+    # while simulation_app.is_running():
+    #     simulation_app.update()
 
-        # num = random.choices([1, 2])[0]
-
-        # print(f"num: {num}")
-
-        # for i in range(num):
-
-        #     env.random_pick_place()
-
-        # env.pick_whole_procedure()
-
-        env.model_pick_whole_procedure()
-
-        # env.recording_camera.create_gif()
-
-        # while simulation_app.is_running():
-        #     simulation_app.update()
-
-        env.world.clear_instance()
+    env.world.clear_instance()
 
 
 # ---------------------coding ending---------------------#
