@@ -47,7 +47,6 @@ from Env_Config.Utils_Project.utils import (
     write_ply,
     write_ply_with_colors,
     load_basket_transport_helper,
-    flush_record_flag,
 )
 from Env_Config.Utils_Project.Basket_Collision_Group import Collision_Group
 from Env_Config.Utils_Project.AttachmentBlock import AttachmentBlock

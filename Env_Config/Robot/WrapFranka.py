@@ -82,7 +82,7 @@ class WrapFranka:
         # add franka to the world
         self.world.scene.add(self._robot)
 
-        # check whether pick point is reachable or not
+        # check whether point is reachable or not
         self.pre_error = 0
         self.error_nochange_epoch = 0
 
@@ -175,7 +175,12 @@ class WrapFranka:
         # apply actions
         self._articulation_controller.apply_action(actions)
 
-    def wm_check_gripper_arrive(self, target_position, stir=False) -> bool:
+    def wm_check_gripper_arrive(
+        self,
+        target_position,
+        stir=False,
+        error_record_file: str = "Env_Eval/washmachine_record.txt",
+    ) -> bool:
         """
         check whether gripper has arrived at the attach block position
         if arrived, return True; else return False.
@@ -202,25 +207,27 @@ class WrapFranka:
         if self.error_nochange_epoch >= 200:
             self.world.stop()
             if stir:
-                with open("Env_Eval/washmachine_record.txt", "a") as file:
-                    file.write(f"result 0 pick point unreachable" + "\n")
+                with open(error_record_file, "a") as file:
+                    file.write(f"0 point unreachable" + "\n")
             else:
                 record_success_failure(
                     False,
-                    "Env_Eval/washmachine_record.txt",
+                    error_record_file,
                     str="pick_point is unreachable",
                 )
         if error >= 0.00065:
             return False
         elif np.isnan(error):
             self.world.stop()
-            record_success_failure(
-                False, "Env_Eval/washmachine_record.txt", str="franka fly"
-            )
+            record_success_failure(False, error_record_file, str="franka fly")
         else:
             return True
 
-    def check_gripper_arrive(self, target_position) -> bool:
+    def check_gripper_arrive(
+        self,
+        target_position,
+        error_record_file: str = "Env_Eval/washmachine_record.txt",
+    ) -> bool:
         """
         check whether gripper has arrived at the attach block position
         if arrived, return True; else return False.
@@ -272,7 +279,12 @@ class WrapFranka:
         # Render World to see the block move
         self.world.step(render=True)
 
-    def fetch_garment_from_washing_machine(self, target_positions, attach_block):
+    def fetch_garment_from_washing_machine(
+        self,
+        target_positions,
+        attach_block,
+        error_record_file: str = "Env_Eval/washmachine_record.txt",
+    ):
         """
         whole procedure of bringing out the garment from wash_machine
         """
@@ -286,14 +298,18 @@ class WrapFranka:
 
         position = torch.tensor(target_positions[0])
         print("start to enter washing machine")
-        while not self.wm_check_gripper_arrive(position):
+        while not self.wm_check_gripper_arrive(
+            position, error_record_file=error_record_file
+        ):
             self.RMPflow_Move(position)
 
         # catch the block
         reach_position = attach_block.get_block_position().cpu()
         reach_position = reach_position[0]
         print(f"start to reach the fetch point : {reach_position}")
-        while not self.wm_check_gripper_arrive(reach_position):
+        while not self.wm_check_gripper_arrive(
+            reach_position, error_record_file=error_record_file
+        ):
             self.RMPflow_Move(reach_position)
         # close franka's gripper
         self.close()
@@ -309,10 +325,17 @@ class WrapFranka:
             # if i==0: i=1
             # elif i==1: i=0
             position = torch.Tensor(target_positions[i])
-            while not self.wm_check_gripper_arrive(position):
+            while not self.wm_check_gripper_arrive(
+                position, error_record_file=error_record_file
+            ):
                 self.move_block_follow_gripper(attach_block, position)
 
-    def fetch_garment_from_sofa(self, target_positions, attach_block):
+    def fetch_garment_from_sofa(
+        self,
+        target_positions,
+        attach_block,
+        error_record_file: str = "Env_Eval/sofa_record.txt",
+    ):
         """
         whole procedure of bringing out the garment from sofa
         """
@@ -361,9 +384,14 @@ class WrapFranka:
 
         return True
 
-    def fetch_garment_from_basket(self, target_positions, attach_block):
+    def fetch_garment_from_basket(
+        self,
+        target_positions,
+        attach_block,
+        error_record_file: str = "Env_Eval/basket_record.txt",
+    ):
         """
-        whole procedure of bringing out the garment from sofa
+        whole procedure of bringing out the garment from basket
         """
         # render world
         self.world.step(render=True)
@@ -371,12 +399,12 @@ class WrapFranka:
         self.open()  # open franka's gripper
 
         position = torch.Tensor(target_positions[1])
-        cprint("start to enter the initial point above sofa", "magenta")
+        cprint("start to enter the initial point above basket", "magenta")
         while not self.check_gripper_arrive(position):
             self.RMPflow_Move(position, orientation=[0.0, 90.0, 90.0])
 
         position = torch.Tensor(target_positions[0])
-        cprint("start to enter the initial point above sofa", "magenta")
+        cprint("start to enter the initial point above basket", "magenta")
         while not self.check_gripper_arrive(position):
             self.RMPflow_Move(position)
 
@@ -426,7 +454,12 @@ class WrapFranka:
 
         return True
 
-    def pick(self, target_positions, attach_block):
+    def pick(
+        self,
+        target_positions,
+        attach_block,
+        error_record_file: str = "Env_Eval/washmachine_record.txt",
+    ):
         """
         whole procedure of bringing out the garment from wash_machine
         """
@@ -440,14 +473,18 @@ class WrapFranka:
 
         position = torch.tensor(target_positions[0])
         print("start to enter washing machine")
-        while not self.wm_check_gripper_arrive(position, stir=True):
+        while not self.wm_check_gripper_arrive(
+            position, stir=True, error_record_file=error_record_file
+        ):
             self.RMPflow_Move(position)
 
         # catch the block
         reach_position = attach_block.get_block_position().cpu()
         reach_position = reach_position[0]
         print(f"start to reach the fetch point : {reach_position}")
-        while not self.wm_check_gripper_arrive(reach_position, stir=True):
+        while not self.wm_check_gripper_arrive(
+            reach_position, stir=True, error_record_file=error_record_file
+        ):
             self.RMPflow_Move(reach_position)
         # close franka's gripper
         self.close()
@@ -456,14 +493,23 @@ class WrapFranka:
         print("start to go to the target push_garment position")
         # move franka according to the pre-set position
 
-    def place(self, place_pos, attach_block):
+    def place(
+        self,
+        place_pos,
+        attach_block,
+        error_record_file: str = "Env_Eval/washmachine_record.txt",
+    ):
 
         position = torch.tensor([0.0, 0.0, 0.75])
-        while not self.wm_check_gripper_arrive(position, stir=True):
+        while not self.wm_check_gripper_arrive(
+            position, stir=True, error_record_file=error_record_file
+        ):
             self.move_block_follow_gripper(attach_block, position)
 
         position = torch.Tensor(place_pos)
-        while not self.wm_check_gripper_arrive(position, stir=True):
+        while not self.wm_check_gripper_arrive(
+            position, stir=True, error_record_file=error_record_file
+        ):
             self.move_block_follow_gripper(attach_block, position)
 
     def adjust_after_stir(self, target_pos=[-1.2, -0.55, 0.9]):

@@ -92,7 +92,7 @@ class Config:
         # ------------Garment Config------------ #
         # Please make sure the length of (position/orientation/scale) array
         # exactly match or more than the garment num.
-        self.garment_num = 4
+        self.garment_num = 5
 
         self.garment_position = [
             [-2, -0.05, 0.95],

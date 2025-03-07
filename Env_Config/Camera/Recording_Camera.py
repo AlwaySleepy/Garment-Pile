@@ -82,30 +82,24 @@ class Recording_Camera:
             # print("get rgb successfully")
         print("stop get rgb")
 
-    def create_gif(self, index=0):
+    def create_gif(self, save_path: str = None):
         """
         create gif according to video frame list
         """
         self.capture = False
-        output_filename = get_unique_filename(
-            base_filename=f"data/animation/animation_{index}", extension=".gif"
-        )
+        output_filename = save_path
         with imageio.get_writer(output_filename, mode="I", duration=0.1) as writer:
             for frame in self.video_frame:
                 # write each video frame into gif
                 writer.append_data(frame)
 
         print(f"GIF has been save into {output_filename}")
-        # finish generating capture, change capture flag to False
-        with open("Env_Eval/washmachine_record.txt", "a") as file:
-            # file.write(f"{self.cur}"+'\n')
-
-            file.write(f"{output_filename}" + "\n")
-        print(f"GIF has been save into {output_filename}")
 
         self.video_frame.clear()
 
-    def judge_contact_with_ground(self):
+    def judge_contact_with_ground(
+        self, save_path: str = "Env_Eval/washmachine_record.txt"
+    ):
         """
         Judge whether the fetched garment has contact with ground
         """
@@ -135,7 +129,7 @@ class Recording_Camera:
                 # self.draw_point_cloud()
                 record_success_failure(
                     flag=False,
-                    file_path="Env_Eval/washmachine_record.txt",
+                    file_path=save_path,
                     str="contact with floor",
                 )
                 self.contact = True

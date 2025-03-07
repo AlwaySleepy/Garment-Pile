@@ -47,7 +47,7 @@ class Point_Cloud_Camera:
             resolution=self.resolution,
         )
 
-        # load model
+        # load retrieve model
         self.model = Retrieve_Model(normal_channel=False).cuda()
         self.model.load_state_dict(torch.load(garment_model_pth_path))
         self.model.eval()
@@ -104,6 +104,9 @@ class Point_Cloud_Camera:
 
         self.semantic_data = self.semantic_data.astype(np.int32)
         pointRgb = pointRgb.reshape((-1, 4))
+
+        if len(self.point_cloud) == 0:
+            return None, None
 
         if sample:
             self.point_cloud, colors, self.semantic = furthest_point_sampling(
@@ -239,7 +242,7 @@ class Point_Cloud_Camera:
         depth = self.camera.get_depth()
         return rgb, depth
 
-    def draw_rgb(self, file_name):
+    def get_rgb(self, file_name):
         from PIL import Image
 
         rgb_data = self.camera.get_rgb()

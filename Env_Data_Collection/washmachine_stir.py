@@ -1,16 +1,7 @@
-"""
-Create Garment_WashMachine Environment
-Include:
-    -All components (wash_machine, franka, garment, camera, other helpful parts)
-    -Whole Procedure of Project
-"""
-
-# Open the Simulation App
 import random
 import sys
 import os
 
-sys.path.append(os.getcwd())
 from Env_Config.Config.wash_machine_config import Config
 import torch
 
@@ -38,7 +29,6 @@ from omni.isaac.core.utils.viewports import set_camera_view
 # print(sys.path)
 
 from Env_Config.Robot.WrapFranka import WrapFranka
-from Env_Config.Wash_Machine.Wash_Machine import Wrap_Wash_Machine
 from Env_Config.Garment.Garment import WrapGarment, Garment
 from Env_Config.Utils_Project.utils import (
     add_wm_door,
@@ -60,11 +50,26 @@ from Env_Config.Model.pointnet2_Retrieve_Model import Retrieve_Model
 from Env_Config.Model.pointnet2_Place_Model import Place_Model
 from Env_Config.Model.pointnet2_Pick_Model import Pick_Model
 import Env_Config.Utils_Project.utils as util
-from Env_Config.Room.Room import Wrap_base, Wrap_room, Wrap_basket
+from Env_Config.Room.Room import Wrap_base, Wrap_room, Wrap_basket, Wrap_wash_machine
 
 
 class washmachineEnv:
-    def __init__(self, index=0):
+    def __init__(
+        self,
+        random_flag=True,
+        model_path=None,
+        rgb_flag=False,
+    ):
+        # random select retrieve point or not
+        self.random_flag = random_flag
+        # if not random, load model
+        if not self.random_flag:
+            self.model_path = model_path
+        else:
+            self.model_path = None
+        # save judge_rgb or not
+        self.rgb_flag = rgb_flag
+
         # define the world
         self.world = World(backend="torch", device="cpu")
         set_camera_view(
@@ -72,7 +77,6 @@ class washmachineEnv:
             target=[0.01, 0.01, 0.01],
             camera_prim_path="/OmniverseKit_Persp",
         )
-        self.index = index
         physx_interface = acquire_physx_interface()
         physx_interface.overwrite_gpu_setting(1)  # garment render request
 
@@ -134,7 +138,7 @@ class washmachineEnv:
         )
 
         # load wash_machine
-        self.wash_machine = Wrap_Wash_Machine(
+        self.wash_machine = Wrap_wash_machine(
             self.config.wm_position,
             self.config.wm_orientation,
             self.config.wm_scale,
@@ -143,13 +147,31 @@ class washmachineEnv:
         )
 
         # load room
-        # self.room = Wrap_room(self.config.room_position, self.config.room_orientation, self.config.room_scale, self.config.room_usd_path, self.config.room_prim_path)
+        # self.room = Wrap_room(
+        #     self.config.room_position,
+        #     self.config.room_orientation,
+        #     self.config.room_scale,
+        #     self.config.room_usd_path,
+        #     self.config.room_prim_path,
+        # )
 
         # load basket
-        # self.basket=Wrap_basket(self.config.basket_position,self.config.basket_orientation,self.config.basket_scale,self.config.basket_usd_path,self.config.basket_prim_path)
+        # self.basket = Wrap_basket(
+        #     self.config.basket_position,
+        #     self.config.basket_orientation,
+        #     self.config.basket_scale,
+        #     self.config.basket_usd_path,
+        #     self.config.basket_prim_path,
+        # )
 
         # load base
-        # self.base=Wrap_base(self.config.base_position,self.config.base_orientation,self.config.base_scale,self.config.base_usd_path,self.config.base_prim_path)
+        # self.base = Wrap_base(
+        #     self.config.base_position,
+        #     self.config.base_orientation,
+        #     self.config.base_scale,
+        #     self.config.base_usd_path,
+        #     self.config.base_prim_path,
+        # )
 
         # load garment
         self.garments = WrapGarment(
@@ -169,7 +191,6 @@ class washmachineEnv:
 
         # load washmachine_model
         obstacle_list = load_washmachine_model(self.world)
-        # add_wm_door(self.world)
 
         self.door = FixedCuboid(
             name="wm_door",
@@ -192,28 +213,31 @@ class washmachineEnv:
 
         # load retrieval model
         self.garment_model = Retrieve_Model(normal_channel=False).cuda()
-        self.garment_model.load_state_dict(torch.load("Model/finetune_model_5.pth"))
+        self.garment_model.load_state_dict(
+            torch.load("Env_Config/Model/wm_retrieve_model_finetuned.pth")
+        )
         self.garment_model.eval()
 
         # load place model
-        self.place_model = Place_Model(normal_channel=False).cuda()
-        self.place_model.load_state_dict(torch.load("Model/finetune_model_2.pth"))
-        self.place_model.eval()
+        if not self.random_flag:
+            self.place_model = Place_Model(normal_channel=False).cuda()
+            self.place_model.load_state_dict(torch.load(self.model_path))
+            self.place_model.eval()
 
-        # load pick model
-        self.pick_model = Pick_Model(normal_channel=False).cuda()
-        self.pick_model.load_state_dict(torch.load("Model/finetune_model_0.pth"))
-        self.pick_model.eval()
+        print("ramdom select point:", self.random_flag)
+        if not self.random_flag:
+            print("model path:", self.model_path)
+        print("save rgb:", self.rgb_flag)
 
     def garment_into_machine(self):
         """
-        Let the clothes float into the washing machine
+        Let the clothes slide into the washing machine through the conveyor belt (which is invisible)
         by changing the direction of gravity.
         """
         # change gravity direction
         self.scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(1.5, 0.0, -1.2))
         self.scene.CreateGravityMagnitudeAttr().Set(8.0)
-        for i in range(650):  # 2500
+        for i in range(650):
             if not simulation_app.is_running():
                 simulation_app.close()
             simulation_app.update()
@@ -223,8 +247,7 @@ class washmachineEnv:
             if i == 400:
                 self.scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(1.5, 0.0, 0.05))
                 self.scene.CreateGravityMagnitudeAttr().Set(9.8)
-            # print(i)
-            if i == 550:  # 2200
+            if i == 550:
                 print("ready to change")
                 # return to the normal gravity direction
                 self.scene.CreateGravityDirectionAttr().Set(Gf.Vec3f(0.0, 0.0, -1))
@@ -234,7 +257,6 @@ class washmachineEnv:
         """
         remove conveyor belt and its collision group
         """
-
         delete_prim("/World/Conveyor_belt")
 
         change_door_pos(self.door)
@@ -274,80 +296,90 @@ class washmachineEnv:
         # render the world
         self.world.step(render=True)
 
-    def get_point_cloud_data(self, filename=None):
+    def get_point_cloud_data(
+        self,
+        filename="Data/WashMachine/Stir_Random/point_cloud/pointcloud",
+        save=True,
+        counter=None,
+    ):
         """
-        make franka unvisible before taking point_cloud graph
-        when finish taking point_cloud_graph, make franka visible
+        get point cloud data and save it into .ply file if needed
         """
-        # make franka unvisible then get point cloud data
-        # set_prim_visibility(self.franka._robot.prim,False)
         for i in range(30):
             self.world.step(render=True)
 
         self.point_cloud, self.colors = self.point_cloud_camera.get_point_cloud_data()
 
-        if filename is not None:
+        if counter is not None:
+            ply_filename = f"{filename}_{counter}.ply"
+        else:
+            ply_filename, self.count = get_unique_filename(filename, ".ply")
+
+        if save:
             write_ply_with_colors(
-                points=self.point_cloud, colors=self.colors, filename=filename
+                points=self.point_cloud,
+                colors=self.colors * 255.0,
+                filename=ply_filename,
             )
-            print("write into ply file")
+        print(f"write into ply file -> {ply_filename}")
 
-    def pick_point(self):
-        """
-        select random point from point_cloud graph and pick
-        record corresponding data into .txt file
-        """
+    def stir_whole_procedure(self):
+        # get point cloud data
+        if self.random_flag:
+            self.get_point_cloud_data(
+                filename="Data/WashMachine/Stir_Random/point_cloud/pointcloud",
+                save=False,
+            )
+        else:
+            self.get_point_cloud_data(
+                filename="Data/WashMachine/Stir_Model/point_cloud/pointcloud",
+                save=False,
+            )
 
-        # use model to select pick point
+        # set franka to be visible
+        # set_prim_visibility(self.franka._robot.prim, True)
+        # use model to get percentage_below_threshold to judge whether to stir
         pick_point, max_value, output = self.point_cloud_camera.get_model_point()
-
         count_below_threshold = (output > 0.93).sum().item()
         total_elements = output.numel()
         percentage_below_threshold = count_below_threshold / total_elements
         print("percentage_below_threshold", percentage_below_threshold)
-
-        count = sum(self.garment_index)
-
-        if percentage_below_threshold < 0.044 and count > 3:
+        # judge stir conditions
+        if percentage_below_threshold < 0.044:
             print("start to stir")
+            self.stir(self.point_cloud)
 
-            self.stir(self.point_cloud, max_value, use_model=False)
-
-    def pick_multiple_times(self, index=0):
-        """
-        use for multiple garments picking
-        """
-
-        for i in range(1):
-            # while(True):
-            if len(self.point_cloud_camera.get_point_cloud_data()) == 0:
-                break
-            pointcloud, rgb = self.point_cloud_camera.get_point_cloud_data()
-            # print(pointcloud)
-            if not isinstance(pointcloud, np.ndarray):
-                pointcloud = np.array(pointcloud)
-            # print(pointcloud)
-            if len(pointcloud) == 0 or pointcloud.ndim != 2 or pointcloud.shape[1] != 3:
-                break
-            util.flag_record = True
-
-            self.recording_camera.judge = True
-
-            self.get_point_cloud_data()
-
-            set_prim_visibility(self.franka._robot.prim, True)
-
-            self.pick_point()
-
-    def stir(
-        self, point_cloud, max_value, percentage_below_threshold=None, use_model=False
-    ):
+    def stir(self, point_cloud):
         index = 0
         continue_stir = True
         while continue_stir:
 
-            if index != 0:
-                self.get_point_cloud_data()
+            if self.random_flag:
+                self.get_point_cloud_data(
+                    filename="Data/WashMachine/Stir_Random/point_cloud/pointcloud"
+                )
+            else:
+                self.get_point_cloud_data(
+                    filename="Data/WashMachine/Stir_Model/point_cloud/pointcloud"
+                )
+
+            if self.rgb_flag:
+                if self.random_flag:
+                    rgb_filename = get_unique_filename(
+                        "Data/WashMachine/Stir_Random/rgb/rgb", ".png"
+                    )
+                    print(rgb_filename)
+                    self.point_cloud_camera.get_rgb(file_name=rgb_filename)
+                    print(f"write into rgb file -> {rgb_filename}")
+                else:
+                    rgb_filename = get_unique_filename(
+                        "Data/WashMachine/Stir_Model/rgb/rgb", ".png"
+                    )
+                    print(rgb_filename)
+                    self.point_cloud_camera.get_rgb(file_name=rgb_filename)
+                    print(f"write into rgb file -> {rgb_filename}")
+
+            set_prim_visibility(self.franka._robot.prim, True)
 
             point_cloud = self.point_cloud
 
@@ -368,11 +400,11 @@ class washmachineEnv:
             # choose pick/place point
             point_cloud = self.point_cloud
 
-            if not use_model:
+            if self.random_flag:
                 num_points = point_cloud.shape[0]
                 dis = 0
                 while dis < 0.13:
-                    # 随机选择两个不同的点
+                    # select pick and place point randomly
                     pick, place = random.sample(range(num_points), 2)
                     dis = torch.norm(
                         torch.tensor(point_cloud[place])
@@ -380,17 +412,9 @@ class washmachineEnv:
                     ).item()
 
             else:
-
-                pick_model_input = point_cloud.reshape(1, -1, 3)
-                pick_model_input = torch.Tensor(pick_model_input).to("cuda:0")
-                pick_model_output = self.pick_model(pick_model_input.transpose(2, 1))
-
-                # pick = random.sample(range(num_points), 1)[0]
-                max_value, indices = torch.max(pick_model_output, dim=1, keepdim=False)
-                print("pick max_value", max_value)
-                pick = indices
-                print("pick indices", pick)
-                print("pick point", point_cloud[pick])
+                # select pick point randomly
+                num_points = point_cloud.shape[0]
+                pick = random.sample(range(num_points), 1)[0]
 
                 pick_pc = point_cloud
                 pick_pc[0] = point_cloud[pick]
@@ -405,110 +429,185 @@ class washmachineEnv:
                 )
 
                 max_value, indices = torch.max(place_model_output, dim=1, keepdim=False)
-
                 place = indices
-                print("place point", point_cloud[place])
 
             stir_pick = point_cloud[pick]
             stir_place = point_cloud[place]
-            self.set_attach_to_garment(point_cloud[pick])
+
+            print("pick point", stir_pick)
+            print("place point", stir_place)
+
+            if self.random_flag:
+                with open("Data/WashMachine/Stir_Random/Record.txt", "a") as file:
+                    file.write(
+                        f"{stir_pick[0]} {stir_pick[1]} {stir_pick[2]} {stir_place[0]} {stir_place[1]} {stir_place[2]} "
+                    )
+            else:
+                with open("Data/WashMachine/Stir_Model/Record.txt", "a") as file:
+                    file.write(
+                        f"{stir_pick[0]} {stir_pick[1]} {stir_pick[2]} {stir_place[0]} {stir_place[1]} {stir_place[2]} "
+                    )
+
+            self.set_attach_to_garment(stir_pick)
 
             # execute stir
-            self.franka.pick(self.config.target_positions, self.attach)
-            self.franka.place(point_cloud[place], self.attach)
+            if self.random_flag:
+                self.franka.pick(
+                    self.config.target_positions,
+                    self.attach,
+                    error_record_file="Data/WashMachine/Stir_Random/Record.txt",
+                )
+                self.franka.place(
+                    stir_place,
+                    self.attach,
+                    error_record_file="Data/WashMachine/Stir_Random/Record.txt",
+                )
+            else:
+                self.franka.pick(
+                    self.config.target_positions,
+                    self.attach,
+                    error_record_file="Data/WashMachine/Stir_Model/Record.txt",
+                )
+                self.franka.place(
+                    stir_place,
+                    self.attach,
+                    error_record_file="Data/WashMachine/Stir_Model/Record.txt",
+                )
 
             self.franka.open()
             self.attach.detach()
             for i in range(30):
                 self.world.step(render=True)
 
-            filename = get_unique_filename(
-                base_filename="data/stir/data", extension=".npz"
-            )
-
             self.franka.adjust_after_stir()
 
             # after stir
-            self.get_point_cloud_data(filename=filename)
-            point_cloud_after_stir = self.point_cloud
+            if self.random_flag:
+                self.get_point_cloud_data(
+                    filename="Data/WashMachine/Stir_Random/point_cloud_after_stir/pointcloud",
+                    counter=self.count,
+                )
+            else:
+                self.get_point_cloud_data(
+                    filename="Data/WashMachine/Stir_Model/point_cloud_after_stir/pointcloud",
+                    counter=self.count,
+                )
+
+            if self.rgb_flag:
+                if self.random_flag:
+                    rgb_filename = f"Data/WashMachine/Stir_Random/rgb_after_stir/rgb_{self.count}.png"
+                    self.point_cloud_camera.get_rgb(file_name=rgb_filename)
+                    print(f"write into rgb file -> {rgb_filename}")
+                else:
+                    rgb_filename = f"Data/WashMachine/Stir_Model/rgb_after_stir/rgb_{self.count}.png"
+                    self.point_cloud_camera.get_rgb(file_name=rgb_filename)
+                    print(f"write into rgb file -> {rgb_filename}")
 
             pick_point, max_value, output = self.point_cloud_camera.get_model_point()
 
             place_max_value = max_value.item()
 
-            count_below_threshold = (output > 0.9).sum().item()
+            count_below_threshold = (output > 0.93).sum().item()
             total_elements = output.numel()
             place_percentage_below_threshold = count_below_threshold / total_elements
 
             print("place_percentage_below_threshold", place_percentage_below_threshold)
 
             if place_percentage_below_threshold > 0.05:
+
                 continue_stir = False
-                np.savez(
-                    filename,
-                    point_cloud=point_cloud,
-                    point_cloud_after_stir=point_cloud_after_stir,
-                    pick=stir_pick,
-                    place=stir_place,
-                    flag=1,
-                )
+                if self.random_flag:
+                    with open("Data/WashMachine/Stir_Random/Record.txt", "a") as file:
+                        file.write(
+                            f"1 success pick_percentage: {pick_percentage_below_threshold} place_percentage: {place_percentage_below_threshold}"
+                            + "\n"
+                        )
+                else:
+                    with open("Data/WashMachine/Stir_Model/Record.txt", "a") as file:
+                        file.write(
+                            f"1 success pick_percentage: {pick_percentage_below_threshold} place_percentage: {place_percentage_below_threshold}"
+                            + "\n"
+                        )
                 print("stir success")
             elif place_max_value - pick_max_value > 0.1:
                 continue_stir = False
-                np.savez(
-                    filename,
-                    point_cloud=point_cloud,
-                    point_cloud_after_stir=point_cloud_after_stir,
-                    pick=stir_pick,
-                    place=stir_place,
-                    flag=1,
-                )
+                if self.random_flag:
+                    with open("Data/WashMachine/Stir_Random/Record.txt", "a") as file:
+                        file.write(
+                            f"1 success pick_percentage: {pick_percentage_below_threshold} place_percentage: {place_percentage_below_threshold}"
+                            + "\n"
+                        )
+                else:
+                    with open("Data/WashMachine/Stir_Model/Record.txt", "a") as file:
+                        file.write(
+                            f"1 success pick_percentage: {pick_percentage_below_threshold} place_percentage: {place_percentage_below_threshold}"
+                            + "\n"
+                        )
                 print("stir success")
             elif (
                 place_percentage_below_threshold - pick_percentage_below_threshold
                 > 0.02
             ):
                 continue_stir = False
-                np.savez(
-                    filename,
-                    point_cloud=point_cloud,
-                    point_cloud_after_stir=point_cloud_after_stir,
-                    pick=stir_pick,
-                    place=stir_place,
-                    flag=1,
-                )
+                if self.random_flag:
+                    with open("Data/WashMachine/Stir_Random/Record.txt", "a") as file:
+                        file.write(
+                            f"1 success pick_percentage: {pick_percentage_below_threshold} place_percentage: {place_percentage_below_threshold}"
+                            + "\n"
+                        )
+                else:
+                    with open("Data/WashMachine/Stir_Model/Record.txt", "a") as file:
+                        file.write(
+                            f"1 success pick_percentage: {pick_percentage_below_threshold} place_percentage: {place_percentage_below_threshold}"
+                            + "\n"
+                        )
                 print("stir success")
             else:
-                np.savez(
-                    filename,
-                    point_cloud=point_cloud,
-                    point_cloud_after_stir=point_cloud_after_stir,
-                    pick=stir_pick,
-                    place=stir_place,
-                    flag=0,
-                )
+                if self.random_flag:
+                    with open("Data/WashMachine/Stir_Random/Record.txt", "a") as file:
+                        file.write(
+                            f"0 fail pick_percentage: {pick_percentage_below_threshold} place_percentage: {place_percentage_below_threshold}"
+                            + "\n"
+                        )
+                else:
+                    with open("Data/WashMachine/Stir_Model/Record.txt", "a") as file:
+                        file.write(
+                            f"0 fail pick_percentage: {pick_percentage_below_threshold} place_percentage: {place_percentage_below_threshold}"
+                            + "\n"
+                        )
                 print("stir fail")
 
             index += 1
             if index >= 2:
                 continue_stir = False
 
+            set_prim_visibility(self.franka._robot.prim, False)
+
+            for i in range(30):
+                self.world.step(render=True)
+
         return pick_point, index
 
 
 if __name__ == "__main__":
 
-    if not os.path.exists("data/stir"):
-        os.makedirs("data/stir")
+    random_flag = sys.argv[1] == "True"
+    if not random_flag:
+        model_path = sys.argv[2]
+    else:
+        model_path = None
+    rgb_flag = sys.argv[3] == "True"
 
-    env = washmachineEnv(index=0)
-    set_prim_visibility(env.franka._robot.prim, False)
+    env = washmachineEnv(random_flag, model_path, rgb_flag)
 
     env.world.reset()
 
-    env.point_cloud_camera.initialize(env.config.garment_num)
+    env.point_cloud_camera.initialize()
 
     env.recording_camera.initialize()
+
+    # set franka to be invisible
+    set_prim_visibility(env.franka._robot.prim, False)
 
     env.garment_into_machine()
 
@@ -516,13 +615,12 @@ if __name__ == "__main__":
         garment.particle_material.set_particle_friction_scale(3.5)
         garment.particle_material.set_particle_adhesion_scale(1.0)
         garment.particle_material.set_friction(0.2)
-        # garment.particle_material.set_damping(5)
 
     env.remove_conveyor_belt()
 
     env.create_attach_block()
 
-    env.pick_multiple_times()
+    env.stir_whole_procedure()
 
     for i in range(100):
         env.world.step(render=True)

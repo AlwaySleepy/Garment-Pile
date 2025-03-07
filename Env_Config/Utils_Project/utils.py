@@ -198,7 +198,7 @@ def load_washmachine_model(world, i=0, j=0):
     return cube_list
 
 
-def get_unique_filename(base_filename, extension=".png"):
+def get_unique_filename(base_filename, extension=".png", counter_return=False):
     counter = 0
     filename = f"{base_filename}_{counter}{extension}"
     while os.path.exists(filename):
@@ -207,32 +207,43 @@ def get_unique_filename(base_filename, extension=".png"):
 
     if extension == ".ply":
         return filename, counter
-    return filename
+    if counter_return:
+        return filename, counter
+    else:
+        return filename
 
 
-flag_record = True
+# flag_record = True
 
 
-def flush_record_flag():
-    global flag_record
-    flag_record = True
+# def flush_record_flag():
+#     global flag_record
+#     flag_record = True
 
 
 def record_success_failure(flag: bool, file_path, str=""):
-    global flag_record
-    if flag_record:
-        flag_record = False
+    # global flag_record
+
+    # print("record success failure flag", flag_record)
+
+    # if flag_record:
+    #     flag_record = False
+
+    with open(file_path, "rb") as file:
+        file.seek(0, 2)
+        file_empty = file.tell() == 0
+        file.seek(-1, 2)
+        last_char = file.read(1)
+
+    if not file_empty and last_char == b"\n":
+        return
+    else:
         if flag:
-            # global score
             with open(file_path, "a") as file:
-                file.write("1" + "\n")
+                file.write("1 " + "success" + "\n")
         else:
             with open(file_path, "a") as file:
                 file.write("0 " + str + "\n")
-    # else:
-    #     if not flag:
-    #         with open(file_path, 'a') as file:
-    #             file.write("0 "+str+'\n')
 
 
 def read_ply(filename):
@@ -323,36 +334,57 @@ def judge_once_per_time(cur_poses, index):
     return nums
 
 
-def wm_judge_final_poses(position, index, garment_index):
-    # if file not exist, create it
-    if not os.path.exists("Env_Eval/washmachine_record.txt"):
-        with open("Env_Eval/washmachine_record.txt", "w") as file:
-            file.write("")
-
-    success = False
+def wm_judge_final_poses(
+    position, index, garment_index, save_path: str = "Env_Eval/washmachine_record.txt"
+):
+    garment_nums = 0
+    catch_garment_x = 0
+    catch_garment_z = 0
+    other_garment_x = 0
+    other_garment_z = 0
+    garment_retrieve_x = []
+    garment_retrieve_z = []
     for i in range(len(garment_index)):
         if i == index:
-            z = position[index][2]
-            if z > 0.3:
-                record_success_failure(success, "Env_Eval/washmachine_record.txt")
-            elif flag_record:
-                success = True
-                record_success_failure(success, "Env_Eval/washmachine_record.txt")
+            catch_garment_x = position[index][0]
+            catch_garment_z = position[index][2]
+            garment_retrieve_x.append(catch_garment_x)
+            garment_retrieve_z.append(catch_garment_z)
+            print("catch_garment_x:", catch_garment_x)
+            print("catch_garment_height:", catch_garment_z)
+            if catch_garment_x > -0.65 or catch_garment_z > 0.28:
+                record_success_failure(False, save_path, "fail to catch out garment")
+            else:
+                garment_nums += 1
 
             delete_prim(f"/World/Garment/garment_{index}")
             garment_index[i] = False
         elif garment_index[i]:
-            if position[i][2] < 0.3:
+            other_garment_x = position[i][0]
+            other_garment_z = position[i][2]
+            garment_retrieve_x.append(other_garment_x)
+            garment_retrieve_z.append(other_garment_z)
+            print("other_garment_x:", other_garment_x)
+            print("other_garment_height:", other_garment_z)
+            if other_garment_z < 0.38:
+                garment_nums += 1
                 delete_prim(f"/World/Garment/garment_{i}")
-                # if position[i][0] > -1.20:
-                #     record_success_failure(False,"Env_Eval/washmachine_record.txt","influence other garments")
                 garment_index[i] = False
+    if garment_nums > 1:
+        if all(x > -0.65 for x in garment_retrieve_x) and all(
+            z > 0.28 for z in garment_retrieve_z
+        ):
+            record_success_failure(
+                False,
+                save_path,
+                "catch more than one garment and fail to catch out garment",
+            )
+        else:
+            record_success_failure(True, save_path)
+    else:
+        record_success_failure(True, save_path)
 
-    if flag_record:
-        success = True
-        record_success_failure(success, "Env_Eval/washmachine_record.txt")
-
-    return garment_index, success
+    return garment_index
 
 
 def sofa_judge_final_poses(position, index, garment_index):

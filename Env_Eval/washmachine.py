@@ -413,10 +413,9 @@ class washmachineEnv:
             )
 
             # will record the success or failure in Env_Eval/washmachine_record.txt
-            self.garment_index, success = wm_judge_final_poses(
+            self.garment_index = wm_judge_final_poses(
                 garment_cur_poses, garment_cur_index, self.garment_index
             )
-            print("success flag", success)
         # ----------------for creating gif-------------------- #
         # self.recording_camera.capture=False
         # self.recording_camera.create_gif()
