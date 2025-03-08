@@ -27,7 +27,7 @@
 ### 1. Install Isaac Sim 2023.1.1
    Our Project is built upon Isaac Sim 2023.1.1. Please refer to the [official guideline](https://docs.isaacsim.omniverse.nvidia.com/latest/installation/download.html) to download it.
 
-   After Download, please move the file into path '/home/XXX/.local/share/ov/pkg/' to adapt the path configuration of the repo.
+   After Download, please move the file into path '~/.local/share/ov/pkg/' and rename the file to be 'isaac-sim-2023.1.1' to adapt the path configuration of the repo.
 
    There are some modification need to be done in Isaac Sim's meta-file. Please refer to this [document]().
 
@@ -53,7 +53,7 @@ For convenience, we recommend to provide an alias for the python.sh file in Isaa
 sudo vim ~/.bashrc
 
 # 2. add following part to the end of the file
-alias isaac_pile=/home/XXX[need change]/.local/share/ov/pkg/isaac-sim-2023.1.1/python.sh
+alias isaac_pile=~/.local/share/ov/pkg/isaac-sim-2023.1.1/python.sh
 
 # 3. save file and exit.
 
@@ -64,7 +64,7 @@ source ~/.bashrc
 Install necessary packages into Isaac Sim Env.
 
 ```bash
-isaac_pile -m pip install -e requirements_isaacsim.txt
+isaac_pile -m pip install termcolor plyfile
 ```
 
 - **Model Training Env** Preparation
@@ -80,7 +80,7 @@ Install necessary packages into Model Training Env.
 ``` bash
 conda activate garmentpile
 
-pip install -e requirements_model.txt
+pip install -r requirements_model.txt
 ```
 
 ### 4. Repo Structure Explanation
