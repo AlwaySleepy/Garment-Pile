@@ -444,9 +444,7 @@ class washmachineEnv:
                     )
             else:
                 with open("Data/WashMachine/Stir_Model/Record.txt", "a") as file:
-                    file.write(
-                        f"{stir_pick[0]} {stir_pick[1]} {stir_pick[2]} {stir_place[0]} {stir_place[1]} {stir_place[2]} "
-                    )
+                    file.write(f"{stir_pick[0]} {stir_pick[1]} {stir_pick[2]} ")
 
             self.set_attach_to_garment(stir_pick)
 
