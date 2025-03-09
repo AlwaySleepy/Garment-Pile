@@ -1,6 +1,6 @@
 # Bug Fix
 
-There are some modifications to isaacsim's backbone code. These are the following (you can ):
+There are some modifications to isaacsim's backbone code. These are the following (you can find all the file in 'isaac-sim-2023.1.1'):
 
 1. File_Path -> "exts/omni.isaac.motion_generation/omni/isaac/motion_generation/lula/interface_helper.py"
 
