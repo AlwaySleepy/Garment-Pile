@@ -22,6 +22,28 @@
 
 ![teaser](Repo_Image/Teaser.jpg)
 
+<center>
+    <table style="margin: auto;">
+        <tr>
+            <td align="center">
+                <img src="./Repo_Image/wm.jpg" width="200"/><br>
+                <b>Washing Machine Scene</b>
+            </td>
+            <td align="center">
+                <img src="./Repo_Image/sofa.jpg" width="200"/><br>
+                <b>Sofa Scene</b>
+            </td>
+            <td align="center">
+                <img src="./Repo_Image/basket.jpg" width="200"/><br>
+                <b>Basket Scene</b>
+            </td>
+        </tr>
+    </table>
+</center>
+
+
+
+
 ## Get Started
 
 ### 1. Install Isaac Sim 2023.1.1
