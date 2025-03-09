@@ -22,24 +22,9 @@
 
 ![teaser](Repo_Image/Teaser.jpg)
 
-<!-- <center>
-    <table style="margin: auto;">
-        <tr>
-            <td align="center">
-                <img src="./Repo_Image/wm.jpg" width="200"/><br>
-                <b>Washing Machine Scene</b>
-            </td>
-            <td align="center">
-                <img src="./Repo_Image/sofa.jpg" width="200"/><br>
-                <b>Sofa Scene</b>
-            </td>
-            <td align="center">
-                <img src="./Repo_Image/basket.jpg" width="200"/><br>
-                <b>Basket Scene</b>
-            </td>
-        </tr>
-    </table>
-</center> -->
+<p align="center" margin-bottom="20em">
+<b>Garment-Pile Simulation Scene</b>
+</p>
 
 <p align="center">
   <img src="./Repo_Image/wm.jpg" alt="Image 1" width="30%" />
@@ -56,7 +41,7 @@
 
    After Download, please move the file into path '~/.local/share/ov/pkg/' and rename the file to be 'isaac-sim-2023.1.1' to adapt the path configuration of the repo.
 
-   There are some modification need to be done in Isaac Sim's meta-file. Please refer to this [document]().
+   There are some modification need to be done in Isaac Sim's meta-file. Please refer to this [document](https://github.com/AlwaySleepy/Garment-Pile/blob/main/BUG_FIX.md).
 
 ### 2. Repo Preparation
 
@@ -107,7 +92,10 @@ Install necessary packages into Model Training Env.
 ``` bash
 conda activate garmentpile
 
-pip install -r requirements_model.txt
+# CUDA version should be 11.8 or less, but no 12.X
+pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+
+pip install -r requirements.txt
 ```
 
 ### 4. Repo Structure Explanation
@@ -189,7 +177,7 @@ conda activate garmentpile
 
 # run any .py file in 'Model_Train' folder. remember to login in wandb
 # e.g.
-python WM_Model_train.py
+python Model_Train/WM_Model_train.py
 ```
 
 ## Finetune

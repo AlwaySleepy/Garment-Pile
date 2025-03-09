@@ -34,14 +34,12 @@ class WrapGarment:
         self.garment_mesh_path = []
         self.garment_num = garment_num
         self.garment_group = []
-
         random_numbers = random.sample(range(0, 100), garment_num)
 
         for i in range(garment_num):
             # define key to get specific garment_usd_path
             key = f"cloth{random_numbers[i]}"
             print(key)
-
             if i == 147:
                 garment = Garment(
                     self.stage,

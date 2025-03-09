@@ -18,7 +18,7 @@ class DefaultConfig(object):
     print_freq = 5  # 每N个batch打印一次信息_4
 
     optimizer = "Adam"  # Adam or SGD
-    max_epoch = 80  # 训练轮数_80
+    max_epoch = 10  # 训练轮数_80
     lr = 0.0008  # 初始化学习率
     lr_decay = 0.95  # 学习率衰减，lr = lr * lr_decay，随着训练的进行逐渐减小学习率的大小，使得模型在训练后期更容易收敛到全局最优解而不是在最优解附近振荡
     weight_decay = 1e-4  # 权重衰减，一种正则化技术，通过向损失函数添加一个惩罚项来减小模型的权重值，以防止过拟合，提高模型的泛化能力

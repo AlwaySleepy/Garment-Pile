@@ -1,7 +1,7 @@
 import random
 import sys
 import os
-
+sys.path.append(os.getcwd())
 from Env_Config.Config.wash_machine_config import Config
 import torch
 

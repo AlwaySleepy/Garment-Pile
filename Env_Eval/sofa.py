@@ -9,7 +9,7 @@ Include:
 import os
 import sys
 from omni.isaac.kit import SimulationApp
-
+sys.path.append(os.getcwd())
 simulation_app = SimulationApp({"headless": False})
 
 # ---------------------coding begin---------------------#
