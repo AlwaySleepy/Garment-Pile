@@ -22,7 +22,7 @@
 
 ![teaser](Repo_Image/Teaser.jpg)
 
-<center>
+<!-- <center>
     <table style="margin: auto;">
         <tr>
             <td align="center">
@@ -39,8 +39,13 @@
             </td>
         </tr>
     </table>
-</center>
+</center> -->
 
+<p align="center">
+  <img src="./Repo_Image/wm.jpg" alt="Image 1" width="30%" />
+  <img src="./Repo_Image/sofa.jpg" alt="Image 2" width="30%" />
+  <img src="./Repo_Image/basket.jpg" alt="Image 3" width="30%" />
+</p>
 
 
 
