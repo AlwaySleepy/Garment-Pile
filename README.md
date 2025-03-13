@@ -10,7 +10,7 @@
 <br>
 
 <div align="center">
-    <a href="" target="_blank">
+    <a href="https://arxiv.org/pdf/2503.09243" target="_blank">
     <img src="https://img.shields.io/badge/Paper-arXiv-green" alt="Paper arXiv"></a>
     <a href="https://garmentpile.github.io/" target="_blank">
     <img src="https://img.shields.io/badge/Page-GarmentPile-red" alt="Project Page"/></a>
