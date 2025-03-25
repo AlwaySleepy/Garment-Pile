@@ -57,7 +57,7 @@ to this:
         if isinstance(self._robot_pos, torch.Tensor):
             self._robot_pos = self._robot_pos.numpy()
         if isinstance(self._robot_rot, torch.Tensor):
-            self._robot_rot = self._robot_rot.numpy()                  
+            self._robot_rot = self._robot_rot.numpy()
 
         if np.any(self._robot_pos - robot_position) or np.any(self._robot_rot - robot_rot):
             self._robot_base_moved = True
@@ -234,7 +234,7 @@ def expand_dims(data, axis):
     import numpy as np
     if isinstance(data, np.ndarray):
         data = torch.Tensor(data)
-    elif isinstance(data, list): 
+    elif isinstance(data, list):
         data = torch.tensor(data)
     return torch.unsqueeze(data, axis)
 ```
@@ -372,4 +372,24 @@ to this:
 
 ```python
 usd_path = "/home/XXX[change]/Garment-Pile/Assets/Robot/franka.usd"
+```
+
+7. File Path -> "exts/omni.isaac.core/omni/isaac/core/scenes/scene.py"
+
+Replace the following code (line 222 - line 228):
+
+```python
+if Scene.object_exists(self, name=name):
+    carb.log_info("ground floor already created with name {}.".format(name))
+    return Scene.get_object(self, name=name)
+assets_root_path = get_assets_root_path()
+if assets_root_path is None:
+    carb.log_error("Could not find Isaac Sim assets folder")
+usd_path = assets_root_path + "/Isaac/Environments/Grid/default_environment.usd"
+```
+
+to this:
+
+```python
+usd_path="/home/XXX[change]/Garment-Pile/Assets/Ground/default_environment.usd"
 ```
