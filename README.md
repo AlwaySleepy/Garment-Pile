@@ -126,6 +126,9 @@ You can directly run the three environment based on the file in *'Env_Eval'* fol
 
 The retrieve, pick, place procedure all rely on pre_trained model.
 
+**[ATTENTION!]**
+**If you find failure of assets loading in simulation, please enter "Env_Config / Config / xx_config.py" to check assets loading path.**
+
 ```bash
 # washmachine
 isaac_pile Env_Eval/washmachine.py

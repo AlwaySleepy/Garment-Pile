@@ -365,6 +365,9 @@ to this:
 Replace the following code:
 
 ```python
+assets_root_path = get_assets_root_path()                       # line 57
+if assets_root_path is None:                                    # line 58
+    carb.log_error("Could not find Isaac Sim assets folder")    # line 59
 usd_path = assets_root_path + "/Isaac/Robots/Franka/franka.usd" # line 60
 ```
 
